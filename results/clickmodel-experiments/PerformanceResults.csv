@@ -1,0 +1,4 @@
+TimeStamp,ExperimentVersion,ClickLogFile,ClickModel,SearchSessions_Train,UniqueQueries_Train,SearchSessions_Test,UniqueQueries_Test,LogLikelihood_Train,LogLikelihood_Test,Perplexity_Train,Perplexity_Test
+1566554118.659068,v5,../resources/input/LOV_QueryClickLog_YandexFormat_Terms.txt,DCTR,18194,6605,4147,1361,-0.26316528405528417,-0.2741192924236824,1.2786960135193401,1.2989561485007208
+1566554336.710281,v5,../resources/input/LOV_QueryClickLog_YandexFormat_Terms.txt,UBM,18194,6605,4147,1361,-0.15523018775965472,-0.1729004980022712,1.1615781878717488,1.1867839082162939
+1566560342.571429,v5,../resources/input/LOV_QueryClickLog_YandexFormat_Terms.txt,DBN,18194,6605,4147,1361,-0.24233364011044506,-0.2707930690171638,1.1949269035138503,1.2273432611359367
