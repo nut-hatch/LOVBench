@@ -1,0 +1,8 @@
+*.iml
+*.log
+lovbench-dataset/src/main/resources/cache/
+lovbench-dataset/target/
+lovbench.dataset/.idea
+lovbench-dataset/src/test/resources/lov.nq
+lovbench-dataset/src/main/resources/dumps/
+
