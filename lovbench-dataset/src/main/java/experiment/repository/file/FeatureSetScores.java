@@ -1,8 +1,8 @@
 package experiment.repository.file;
 
 import com.opencsv.CSVWriter;
+import experiment.configuration.ExperimentConfiguration;
 import experiment.feature.extraction.AbstractFeature;
-import experiment.model.FeatureScore;
 import experiment.model.query.enums.ExtractionType;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -160,5 +160,13 @@ public class FeatureSetScores<Q,R> {
             type = "ontology";
         }
         return ExperimentConfiguration.getInstance().getResultDir() + type + "/" + feature.getFeatureName() + ".csv";
+    }
+
+    public Map<Pair<Q, R>, Map<AbstractFeature, Double>> getFeatureScores() {
+        return featureScores;
+    }
+
+    public void setFeatureScores(Map<Pair<Q, R>, Map<AbstractFeature, Double>> featureScores) {
+        this.featureScores = featureScores;
     }
 }
