@@ -1,6 +1,5 @@
 package experiment;
 
-import experiment.feature.extraction.FeatureExtractorOntologies;
 import experiment.feature.extraction.FeatureExtractorTerms;
 import experiment.feature.extraction.ontology.importance.*;
 import experiment.feature.extraction.ontology.relevance.*;
@@ -12,8 +11,7 @@ import experiment.feature.scoring.api.LOVScorer;
 import experiment.feature.scoring.graph.BetweennessScorer;
 import experiment.feature.scoring.graph.HITSScorer;
 import experiment.feature.scoring.graph.HubDWRankScorer;
-import experiment.repository.file.ExperimentConfiguration;
-import experiment.repository.file.GroundTruthOntologyRanking;
+import experiment.configuration.ExperimentConfiguration;
 import experiment.repository.file.GroundTruthTermRanking;
 import experiment.repository.triplestore.AbstractOntologyMetadataRepository;
 import experiment.repository.triplestore.AbstractOntologyRepository;
