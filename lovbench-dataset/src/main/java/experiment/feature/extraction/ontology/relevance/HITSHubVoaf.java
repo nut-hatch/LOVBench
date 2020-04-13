@@ -22,6 +22,8 @@ public class HITSHubVoaf extends AbstractOntologyRelevanceFeature {
      */
     HITSScorer hits;
 
+    public static final String FEATURE_NAME = "HITS_Hub_Voaf_O";
+
     private static final Logger log = LoggerFactory.getLogger( HITSHubVoaf.class );
 
     public HITSHubVoaf(AbstractOntologyRepository repository, HITSScorer hits) {
@@ -38,6 +40,6 @@ public class HITSHubVoaf extends AbstractOntologyRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "HITS_Hub_Voaf_O";
+        return HITSHubVoaf.FEATURE_NAME;
     }
 }

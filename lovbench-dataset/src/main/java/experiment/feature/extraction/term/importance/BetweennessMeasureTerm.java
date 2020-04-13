@@ -18,35 +18,34 @@ public class BetweennessMeasureTerm extends AbstractTermImportanceFeature {
 
     BetweennessScorer betweennessScorer;
 
+    public static final String FEATURE_NAME = "Betweenness_T";
+
     private static final Logger log = LoggerFactory.getLogger( BetweennessMeasureTerm.class );
 
     public BetweennessMeasureTerm(AbstractOntologyRepository repository, BetweennessScorer betweennessScorer) {
         super(repository);
         this.betweennessScorer = betweennessScorer;
+        if (this.scores == null) {
+            this.scores = new HashMap<>();
+        }
     }
 
     @Override
-    public Map<Term, Double> computeScores(Set<Term> termSet) {
+    public Map<Term, Double> computeScores(Set<Term> termSet, Ontology ontology) {
         Map<Term, Double> scores = new HashMap<>();
         for (Term term : termSet) {
-            log.info(term.getTermUri());
-            log.info(term.getOntologyUriOfTerm());
-            double score = this.betweennessScorer.betweenness(term,new Ontology(term.getOntologyUriOfTerm()));
+            if (ontology == null) {
+                ontology = new Ontology(term.getOntologyUriOfTerm());
+            }
+            double score = this.betweennessScorer.betweenness(term,ontology);
             scores.put(term, score);
         }
-        this.setScores(scores);
+        this.scores.putAll(scores);
         return scores;
     }
 
     @Override
-    protected void computeAllScores() {
-        for (Ontology ontology : this.repository.getAllOntologies()) {
-            this.scores.putAll(this.betweennessScorer.allBetweennessScores(ontology));
-        }
-    }
-
-    @Override
     public String getFeatureName() {
-        return "Betweenness_T";
+        return BetweennessMeasureTerm.FEATURE_NAME;
     }
 }

@@ -12,6 +12,8 @@ public class LOVOntologyMatch extends AbstractOntologyRelevanceFeature {
 
     LOVScorer lovScorer;
 
+    public static final String FEATURE_NAME = "LOV_Match_O";
+
     private static final Logger log = LoggerFactory.getLogger( LOVOntologyMatch.class );
 
     public LOVOntologyMatch(AbstractOntologyRepository repository, LOVScorer lovScorer) {
@@ -30,6 +32,6 @@ public class LOVOntologyMatch extends AbstractOntologyRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "LOV_Match_O";
+        return FEATURE_NAME;
     }
 }

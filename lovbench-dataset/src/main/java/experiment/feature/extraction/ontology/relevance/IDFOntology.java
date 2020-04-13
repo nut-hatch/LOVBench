@@ -21,6 +21,8 @@ public class IDFOntology extends AbstractOntologyRelevanceFeature {
      */
     TFIDFScorer tfidfScorer;
 
+    public static final String FEATURE_NAME = "IDF_O";
+
     private static final Logger log = LoggerFactory.getLogger( IDFOntology.class );
 
     public IDFOntology(AbstractOntologyRepository repository, TFIDFScorer tfidfScorer) {
@@ -50,6 +52,6 @@ public class IDFOntology extends AbstractOntologyRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "IDF_O";
+        return IDFOntology.FEATURE_NAME;
     }
 }

@@ -23,6 +23,8 @@ public class TFIDFTerm extends AbstractTermImportanceFeature {
      */
     TFIDFScorer tfidfScorer;
 
+    public static final String FEATURE_NAME = "TF_IDF_T";
+
     private static final Logger log = LoggerFactory.getLogger( TFIDFTerm.class );
 
     public TFIDFTerm(AbstractOntologyRepository repository, TFIDFScorer tfidfScorer) {
@@ -30,28 +32,35 @@ public class TFIDFTerm extends AbstractTermImportanceFeature {
         this.tfidfScorer = tfidfScorer;
     }
 
+
+
     @Override
-    public Map<Term, Double> computeScores(Set<Term> termSet) {
+    public Map<Term, Double> computeScores(Set<Term> termSet, Ontology ontology) {
         Map<Term, Double> scores = new HashMap<>();
         for (Term term : termSet) {
-            Ontology ontology = new Ontology(term.getOntologyUriOfTerm());
+            if (ontology == null) {
+                ontology = new Ontology(term.getOntologyUriOfTerm());
+            }
             double tfidfScore = this.tfidfScorer.tf(term, ontology) * this.tfidfScorer.idf(term);
-            scores.put(term, tfidfScore);
+            if (Double.compare(tfidfScore, 0.0) == 0) {
+            }
+            scores.put(term,tfidfScore);
         }
-        this.setScores(scores);
+        this.scores.putAll(scores);
         return scores;
     }
 
-    @Override
-    protected void computeAllScores() {
-        for (Map.Entry<Ontology, Set<Term>> ontologyTerms : this.repository.getAllTerms().entrySet()) {
-            Ontology ontology = ontologyTerms.getKey();
-            for (Term term : ontologyTerms.getValue()) {
-                double tfidfScore = this.tfidfScorer.tf(term, ontology) * this.tfidfScorer.idf(term);
-                this.scores.put(term, tfidfScore);
-            }
-        }
-    }
+//    @Override
+//    protected void computeAllScores() {
+//        this.scores = new HashMap<>();
+////        for (Map.Entry<Ontology, Set<Term>> ontologyTerms : this.repository.getAllTerms().entrySet()) {
+////            Ontology ontology = ontologyTerms.getKey();
+////            for (Term term : ontologyTerms.getValue()) {
+////                double tfidfScore = this.tfidfScorer.tf(term, ontology) * this.tfidfScorer.idf(term);
+////                this.scores.put(term, tfidfScore);
+////            }
+////        }
+//    }
 
     //    @Override
 //    public double getScore(TermQuery query, Term term) {
@@ -71,7 +80,7 @@ public class TFIDFTerm extends AbstractTermImportanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "TF_IDF_T";
+        return TFIDFTerm.FEATURE_NAME;
     }
 
 }

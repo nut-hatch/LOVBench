@@ -56,7 +56,7 @@ public class FeatureExtractorTerms extends AbstractFeatureExtractor {
                         Table.Cell<TermQuery, Term, Relevance> groundTruthRow = (Table.Cell) tableIterator.next();
                         TermQuery query = groundTruthRow.getRowKey();
                         Term term = groundTruthRow.getColumnKey();
-                        log.info("Query: " + i);
+                        log.debug("Query: " + i);
                         i++;
                         double score = ((AbstractTermImportanceFeature) termFeature).getScore(term);
                         featureSetScores.addScore(Pair.of(query,term),termFeature,score);
@@ -68,7 +68,7 @@ public class FeatureExtractorTerms extends AbstractFeatureExtractor {
                         TermQuery query = groundTruthRow.getRowKey();
                         Term term = groundTruthRow.getColumnKey();
 
-                        log.info("Query: " + i);
+                        log.debug("Query: " + i);
                         i++;
                         double score = ((AbstractTermRelevanceFeature) termFeature).getScore(query, term);
                         featureSetScores.addScore(Pair.of(query,term),termFeature,score);
@@ -103,7 +103,7 @@ public class FeatureExtractorTerms extends AbstractFeatureExtractor {
                         Term term = groundTruthRow.getColumnKey();
                         Ontology ontology = new Ontology(term.getOntologyUriOfTerm());
 
-                        log.info("Query: " + i);
+                        log.debug("Query: " + i);
                         i++;
                         double score = ((AbstractOntologyImportanceFeature) ontologyFeature).getScore(ontology);
                         featureSetScores.addScore(Pair.of(query,term),ontologyFeature,score);
@@ -117,7 +117,7 @@ public class FeatureExtractorTerms extends AbstractFeatureExtractor {
                         Term term = groundTruthRow.getColumnKey();
                         Ontology ontology = new Ontology(term.getOntologyUriOfTerm());
 
-                        log.info("Query: " + i);
+                        log.debug("Query: " + i);
                         i++;
                         double score = ((AbstractOntologyRelevanceFeature) ontologyFeature).getScore(query, ontology);
                         featureSetScores.addScore(Pair.of(query, term), ontologyFeature, score);
@@ -127,6 +127,58 @@ public class FeatureExtractorTerms extends AbstractFeatureExtractor {
             }
         }
         featureSetScores.writeCsv();
+    }
+
+    public FeatureSetScores<TermQuery,Term> extractImportance(Map<Ontology,Set<Term>> ontologiesAndTerms) {
+
+        FeatureSetScores<TermQuery,Term> featureSetScores = new FeatureSetScores<>(ExtractionType.TERM);
+
+        Set<Ontology> ontologySet = ontologiesAndTerms.keySet();
+        Set<Term> termSet = new HashSet<>();
+        for (Set<Term> ontologyTermSet : ontologiesAndTerms.values()) {
+            termSet.addAll(ontologyTermSet);
+        }
+
+        if (this.ontologyFeatures.size() > 0) {
+
+            for (AbstractOntologyFeature ontologyFeature : this.ontologyFeatures) {
+                if (ontologyFeature instanceof AbstractOntologyImportanceFeature) {
+
+                    ((AbstractOntologyImportanceFeature) ontologyFeature).computeScores(ontologySet);
+
+                    Iterator<Term> termIterator = termSet.iterator();
+                    while (termIterator.hasNext()) {
+                        Term term = termIterator.next();
+                        TermQuery query = null;
+                        Ontology ontology = new Ontology(term.getOntologyUriOfTerm());
+
+                        double score = ((AbstractOntologyImportanceFeature) ontologyFeature).getScore(ontology);
+                        featureSetScores.addScore(Pair.of(query,term),ontologyFeature,score);
+                    }
+                }
+            }
+        }
+
+        if (this.termFeatures.size() > 0) {
+            for (AbstractTermFeature termFeature : this.termFeatures) {
+
+                if (termFeature instanceof AbstractTermImportanceFeature) {
+
+                    ((AbstractTermImportanceFeature) termFeature).computeScores(termSet);
+
+                    Iterator<Term> termIterator = termSet.iterator();
+                    while (termIterator.hasNext()) {
+                        Term term = termIterator.next();
+                        TermQuery query = null;
+
+                        double score = ((AbstractTermImportanceFeature) termFeature).getScore(term);
+                        featureSetScores.addScore(Pair.of(query,term),termFeature,score);
+                    }
+                }
+            }
+        }
+
+        return featureSetScores;
     }
 
     public void addTermFeature(AbstractTermFeature f) {

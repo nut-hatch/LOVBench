@@ -4,6 +4,8 @@ import experiment.feature.scoring.TFIDFScorer;
 import experiment.model.Ontology;
 import experiment.model.Term;
 import experiment.repository.triplestore.AbstractOntologyRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +23,10 @@ public class BM25Term extends AbstractTermImportanceFeature {
 
     double b = 0.75;
 
+    public static final String FEATURE_NAME = "BM25_T";
+
+    private static final Logger log = LoggerFactory.getLogger( BM25Term.class );
+
     public BM25Term(AbstractOntologyRepository repository, TFIDFScorer tfidfScorer) {
         super(repository);
         this.tfidfScorer = tfidfScorer;
@@ -34,36 +40,24 @@ public class BM25Term extends AbstractTermImportanceFeature {
     }
 
     @Override
-    protected void computeAllScores() {
-        for (Map.Entry<Ontology, Set<Term>> ontologyTerms : this.repository.getAllTerms().entrySet()) {
-            Ontology ontology = ontologyTerms.getKey();
-            for (Term term : ontologyTerms.getValue()) {
-                double bm25Score = this.tfidfScorer.idf(term) *
-                    (       (this.tfidfScorer.tf(term, ontology) * this.k + 1 ) /
-                            (this.tfidfScorer.tf(term, ontology) + this.k * (1 - this.b + this.b * (this.repository.ontologySize(ontology) / this.repository.averageOntologySize())))
-                    );
-                this.scores.put(term, bm25Score);
-            }
-        }
-    }
-
-    @Override
-    public Map<Term, Double> computeScores(Set<Term> termSet) {
+    public Map<Term, Double> computeScores(Set<Term> termSet, Ontology ontology) {
         Map<Term, Double> scores = new HashMap<>();
         for (Term term : termSet) {
-            Ontology ontology = new Ontology(term.getOntologyUriOfTerm());
+            if (ontology == null) {
+                ontology = new Ontology(term.getOntologyUriOfTerm());
+            }
             double bm25Score = this.tfidfScorer.idf(term) *
                     (       (this.tfidfScorer.tf(term, ontology) * this.k + 1 ) /
                             (this.tfidfScorer.tf(term, ontology) + this.k * (1 - this.b + this.b * (this.repository.ontologySize(ontology) / this.repository.averageOntologySize())))
                     );
             scores.put(term, bm25Score);
         }
-        this.setScores(scores);
+        this.scores.putAll(scores);
         return scores;
     }
 
     @Override
     public String getFeatureName() {
-        return "BM25_T";
+        return BM25Term.FEATURE_NAME;
     }
 }

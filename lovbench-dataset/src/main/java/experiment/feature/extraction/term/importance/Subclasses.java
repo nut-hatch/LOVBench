@@ -1,6 +1,7 @@
 package experiment.feature.extraction.term.importance;
 
 import experiment.feature.scoring.TermStatsScorer;
+import experiment.model.Ontology;
 import experiment.model.Term;
 import experiment.repository.triplestore.AbstractOntologyRepository;
 
@@ -12,28 +13,26 @@ public class Subclasses extends AbstractTermImportanceFeature {
 
     TermStatsScorer termStatsScorer;
 
+    public static final String FEATURE_NAME = "Subclasses_T";
+
     public Subclasses(AbstractOntologyRepository repository, TermStatsScorer termStatsScorer) {
         super(repository);
         this.termStatsScorer = termStatsScorer;
     }
 
     @Override
-    protected void computeAllScores() {
-
-    }
-
-    @Override
-    public Map<Term, Double> computeScores(Set<Term> termSet) {
+    public Map<Term, Double> computeScores(Set<Term> termSet, Ontology ontology) {
         Map<Term, Double> scores = new HashMap<>();
         for (Term term : termSet) {
-            scores.put(term, (double)this.termStatsScorer.countSubclasses(term));
+            double score = (double)this.termStatsScorer.countSubclasses(term);
+            scores.put(term, score);
         }
-        this.setScores(scores);
+        this.scores.putAll(scores);
         return scores;
     }
 
     @Override
     public String getFeatureName() {
-        return "Subclasses_T";
+        return Subclasses.FEATURE_NAME;
     }
 }

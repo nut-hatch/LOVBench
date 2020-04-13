@@ -4,10 +4,16 @@ import experiment.model.Ontology;
 import experiment.model.Term;
 import experiment.model.query.TermQuery;
 import experiment.repository.triplestore.AbstractOntologyRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 
 public class BooleanMatch extends AbstractTermRelevanceFeature {
+
+    public static final String FEATURE_NAME = "Boolean_Match_T";
+
+    private static final Logger log = LoggerFactory.getLogger( BooleanMatch.class );
 
     public BooleanMatch(AbstractOntologyRepository repository) {
         super(repository);
@@ -21,6 +27,6 @@ public class BooleanMatch extends AbstractTermRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "Boolean_Match_T";
+        return BooleanMatch.FEATURE_NAME;
     }
 }

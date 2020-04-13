@@ -23,6 +23,8 @@ public class IDFTerm extends AbstractTermImportanceFeature {
      */
     TFIDFScorer tfidfScorer;
 
+    public static final String FEATURE_NAME = "IDF_T";
+
     private static final Logger log = LoggerFactory.getLogger( IDFTerm.class );
 
     public IDFTerm(AbstractOntologyRepository repository, TFIDFScorer tfidfScorer) {
@@ -31,25 +33,26 @@ public class IDFTerm extends AbstractTermImportanceFeature {
     }
 
     @Override
-    public Map<Term, Double> computeScores(Set<Term> termSet) {
+    public Map<Term, Double> computeScores(Set<Term> termSet, Ontology ontology) {
         Map<Term, Double> scores = new HashMap<>();
         for (Term term : termSet) {
             double idfScore = this.tfidfScorer.idf(term);
             scores.put(term, idfScore);
         }
-        this.setScores(scores);
+        this.scores.putAll(scores);
         return scores;
     }
 
-    @Override
-    protected void computeAllScores() {
-        for (Map.Entry<Ontology, Set<Term>> ontologyTerms : this.repository.getAllTerms().entrySet()) {
-            for (Term term : ontologyTerms.getValue()) {
-                double tfidfScore = this.tfidfScorer.idf(term);
-                this.scores.put(term, tfidfScore);
-            }
-        }
-    }
+//    @Override
+//    protected void computeAllScores() {
+//        this.scores = new HashMap<>();
+//        for (Map.Entry<Ontology, Set<Term>> ontologyTerms : this.repository.getAllTerms().entrySet()) {
+//            for (Term term : ontologyTerms.getValue()) {
+//                double tfidfScore = this.tfidfScorer.idf(term);
+//                this.scores.put(term, tfidfScore);
+//            }
+//        }
+//    }
     //    @Override
 //    public double getScore(TermQuery query, Term term) {
 //        // For Term IDF: check if the term we want to score is in query match, if yes return idf, if not return 0
@@ -68,6 +71,6 @@ public class IDFTerm extends AbstractTermImportanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "IDF_T";
+        return IDFTerm.FEATURE_NAME;
     }
 }

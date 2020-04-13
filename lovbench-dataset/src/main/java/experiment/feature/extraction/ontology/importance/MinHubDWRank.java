@@ -17,6 +17,8 @@ public class MinHubDWRank extends AbstractOntologyImportanceFeature {
 
     HubDWRankScorer hubDWRankScorer;
 
+    public static final String FEATURE_NAME = "Min_Hub_O";
+
     private static final Logger log = LoggerFactory.getLogger( MinHubDWRank.class );
 
     public MinHubDWRank(AbstractOntologyRepository repository, HubDWRankScorer hubDWRankScorer) {
@@ -27,22 +29,15 @@ public class MinHubDWRank extends AbstractOntologyImportanceFeature {
     @Override
     public Map<Ontology, Double> computeScores(Set<Ontology> ontologySet) {
         Map<Ontology, Double> scores = new HashMap<>();
-        for (Ontology ontology : this.repository.getAllOntologies()) {
+        for (Ontology ontology : ontologySet) {
             scores.put(ontology, this.hubDWRankScorer.getMinHubScore(ontology));
         }
-        this.setScores(scores);
+        this.scores.putAll(scores);
         return scores;
     }
 
     @Override
-    protected void computeAllScores() {
-        for (Ontology ontology : this.repository.getAllOntologies()) {
-            this.scores.put(ontology, this.hubDWRankScorer.getMinHubScore(ontology));
-        }
-    }
-
-    @Override
     public String getFeatureName() {
-        return "Min_Hub_O";
+        return MinHubDWRank.FEATURE_NAME;
     }
 }

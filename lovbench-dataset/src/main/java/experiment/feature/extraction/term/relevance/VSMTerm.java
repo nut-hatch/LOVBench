@@ -19,6 +19,8 @@ public class VSMTerm extends AbstractTermRelevanceFeature {
 
     TFIDFScorer tfidfScorer;
 
+    public static final String FEATURE_NAME = "VSM_Term";
+
     private static final Logger log = LoggerFactory.getLogger( VSMTerm.class );
 
     public VSMTerm(AbstractOntologyRepository repository, TFIDFScorer tfidfScorer) {
@@ -72,6 +74,6 @@ public class VSMTerm extends AbstractTermRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "VSM_Term";
+        return VSMTerm.FEATURE_NAME;
     }
 }

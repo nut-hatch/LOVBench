@@ -23,6 +23,8 @@ public class TFTerm extends AbstractTermImportanceFeature {
      */
     TFIDFScorer tfidfScorer;
 
+    public static final String FEATURE_NAME = "TF_T";
+
     private static final Logger log = LoggerFactory.getLogger( TFTerm.class );
 
     public TFTerm(AbstractOntologyRepository repository, TFIDFScorer tfidfScorer) {
@@ -31,27 +33,30 @@ public class TFTerm extends AbstractTermImportanceFeature {
     }
 
     @Override
-    public Map<Term, Double> computeScores(Set<Term> termSet) {
+    public Map<Term, Double> computeScores(Set<Term> termSet, Ontology ontology) {
         Map<Term, Double> scores = new HashMap<>();
         for (Term term : termSet) {
-            Ontology ontology = new Ontology(term.getOntologyUriOfTerm());
+            if (ontology == null ) {
+                ontology = new Ontology(term.getOntologyUriOfTerm());
+            }
             double tfScore = this.tfidfScorer.tf(term, ontology);
             scores.put(term, tfScore);
         }
-        this.setScores(scores);
+        this.scores.putAll(scores);
         return scores;
     }
 
-    @Override
-    protected void computeAllScores() {
-        for (Map.Entry<Ontology, Set<Term>> ontologyTerms : this.repository.getAllTerms().entrySet()) {
-            Ontology ontology = ontologyTerms.getKey();
-            for (Term term : ontologyTerms.getValue()) {
-                double tfScore = this.tfidfScorer.tf(term, ontology);
-                this.scores.put(term, tfScore);
-            }
-        }
-    }
+//    @Override
+//    protected void computeAllScores() {
+//        this.scores = new HashMap<>();
+//        for (Map.Entry<Ontology, Set<Term>> ontologyTerms : this.repository.getAllTerms().entrySet()) {
+//            Ontology ontology = ontologyTerms.getKey();
+//            for (Term term : ontologyTerms.getValue()) {
+//                double tfScore = this.tfidfScorer.tf(term, ontology);
+//                this.scores.put(term, tfScore);
+//            }
+//        }
+//    }
 
 //    @Override
 //    public double getScore(TermQuery query, Term term) {
@@ -72,6 +77,6 @@ public class TFTerm extends AbstractTermImportanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "TF_T";
+        return TFTerm.FEATURE_NAME;
     }
 }

@@ -24,6 +24,8 @@ import java.util.List;
  */
 public class SemanticSimilarityMeasure extends AbstractOntologyRelevanceFeature {
 
+    public static final String FEATURE_NAME = "Semantic_Similarity_O";
+
     private static final Logger log = LoggerFactory.getLogger( SemanticSimilarityMeasure.class );
 
     public SemanticSimilarityMeasure(AbstractOntologyRepository repository) {
@@ -73,12 +75,12 @@ public class SemanticSimilarityMeasure extends AbstractOntologyRelevanceFeature 
                 semanticSimilarityScore = (double) shortestPathLengthSum / countPairs;
             }
         }
-        log.info(String.format("Semantic similarity score for query %s and ontology %s: %s", query, ontology, semanticSimilarityScore));
+        log.debug(String.format("Semantic similarity score for query %s and ontology %s: %s", query, ontology, semanticSimilarityScore));
         return semanticSimilarityScore;
     }
 
     @Override
     public String getFeatureName() {
-        return "Semantic_Similarity_O";
+        return SemanticSimilarityMeasure.FEATURE_NAME;
     }
 }

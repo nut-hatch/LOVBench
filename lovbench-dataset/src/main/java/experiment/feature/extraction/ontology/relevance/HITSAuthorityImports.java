@@ -22,6 +22,8 @@ public class HITSAuthorityImports extends AbstractOntologyRelevanceFeature {
      */
     HITSScorer hits;
 
+    public static final String FEATURE_NAME = "HITS_Authority_OwlImports_O";
+
     private static final Logger log = LoggerFactory.getLogger( HITSAuthorityImports.class );
 
     public HITSAuthorityImports(AbstractOntologyRepository repository, HITSScorer hits) {
@@ -41,7 +43,7 @@ public class HITSAuthorityImports extends AbstractOntologyRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "HITS_Authority_OwlImports_O";
+        return HITSAuthorityImports.FEATURE_NAME;
     }
 
 }

@@ -7,7 +7,7 @@ import experiment.model.Ontology;
 import experiment.model.Term;
 import experiment.model.query.AbstractQuery;
 import experiment.model.query.TermQuery;
-import experiment.repository.file.ExperimentConfiguration;
+import experiment.configuration.ExperimentConfiguration;
 import experiment.repository.file.FileUtil;
 import experiment.repository.triplestore.AbstractOntologyRepository;
 import org.slf4j.Logger;
@@ -27,6 +27,8 @@ public class VSMOntology extends AbstractOntologyRelevanceFeature {
     TFIDFScorer tfidfScorer;
 
     Map<AbstractQuery, Map<Ontology, Double>> vsmScoreCache = new HashMap<>();
+
+    public static final String FEATURE_NAME = "VSM_O";
 
     private static final Logger log = LoggerFactory.getLogger( VSMOntology.class );
 
@@ -70,7 +72,7 @@ public class VSMOntology extends AbstractOntologyRelevanceFeature {
                     }
                     tfidfQuery = (Collections.frequency(query.getSearchWords(), searchWord) / maxSearchWordFrequency) * Math.log(this.repository.countOntologies() / matchedTermsPerOntology.keySet().size());
                 } else {
-                    log.info(String.format("No matches for query %s and ontology %s. Score = 0", query.toString(), ontology));
+                    log.debug(String.format("No matches for query %s and ontology %s. Score = 0", query.toString(), ontology));
                 }
 
 
@@ -101,7 +103,7 @@ public class VSMOntology extends AbstractOntologyRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "VSM_O";
+        return VSMOntology.FEATURE_NAME;
     }
 
 

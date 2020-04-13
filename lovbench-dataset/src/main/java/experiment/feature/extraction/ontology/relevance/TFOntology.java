@@ -22,6 +22,8 @@ public class TFOntology extends AbstractOntologyRelevanceFeature {
      */
     TFIDFScorer tfidfScorer;
 
+    public static final String FEATURE_NAME = "TF_O";
+
     private static final Logger log = LoggerFactory.getLogger( TFOntology.class );
 
     public TFOntology(AbstractOntologyRepository repository, TFIDFScorer tfidfScorer) {
@@ -50,7 +52,7 @@ public class TFOntology extends AbstractOntologyRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "TF_O";
+        return TFOntology.FEATURE_NAME;
     }
 
 }

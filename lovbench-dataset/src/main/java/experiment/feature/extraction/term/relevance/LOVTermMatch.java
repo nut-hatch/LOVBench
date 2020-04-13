@@ -4,6 +4,8 @@ import experiment.feature.scoring.api.LOVScorer;
 import experiment.model.Term;
 import experiment.model.query.TermQuery;
 import experiment.repository.triplestore.AbstractOntologyRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Computes the LOV term match score.
@@ -11,6 +13,10 @@ import experiment.repository.triplestore.AbstractOntologyRepository;
 public class LOVTermMatch extends AbstractTermRelevanceFeature {
 
     LOVScorer lovScorer;
+
+    public static final String FEATURE_NAME = "LOV_Match_T";
+
+    private static final Logger log = LoggerFactory.getLogger( LOVTermMatch.class );
 
     public LOVTermMatch(AbstractOntologyRepository repository, LOVScorer lovScorer) {
         super(repository);
@@ -24,6 +30,6 @@ public class LOVTermMatch extends AbstractTermRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "LOV_Match_T";
+        return LOVTermMatch.FEATURE_NAME;
     }
 }

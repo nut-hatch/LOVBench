@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,6 +21,8 @@ public class HubDWRank extends AbstractTermImportanceFeature {
 
     HubDWRankScorer hubDWRankScorer;
 
+    public static final String FEATURE_NAME = "Hub_T";
+
     private static final Logger log = LoggerFactory.getLogger( HubDWRank.class );
 
     public HubDWRank(AbstractOntologyRepository repository, HubDWRankScorer hubDWRankScorer) {
@@ -28,29 +31,25 @@ public class HubDWRank extends AbstractTermImportanceFeature {
     }
 
     @Override
-    public Map<Term, Double> computeScores(Set<Term> termSet) {
+    public Map<Term, Double> computeScores(Set<Term> termSet, Ontology ontology) {
         Map<Term, Double> scores = new HashMap<>();
-
-        // Since the scores are anyways computed for the complete graph, also add scores for all graph here..
-        for (Ontology ontology : this.repository.getAllOntologies()) {
-            Map<Term,Double> allOntologyTermScores = this.hubDWRankScorer.getHubScores(ontology);
-            scores.putAll(allOntologyTermScores);
+        if (ontology == null && !termSet.isEmpty()) {
+            ontology = new Ontology(termSet.iterator().next().getOntologyUriOfTerm());
         }
-        this.setScores(scores);
+        Map<Term,Double> allOntologyTermScores = this.hubDWRankScorer.getHubScores(ontology);
+        for (Term term : termSet) {
+            if (allOntologyTermScores.containsKey(term)) {
+                scores.put(term, allOntologyTermScores.get(term));
+            } else {
+                scores.put(term, 0.0);
+            }
+        }
+        this.scores.putAll(scores);
         return scores;
     }
 
     @Override
-    protected void computeAllScores() {
-        // Reversed PageRank and normalization
-        for (Ontology ontology : this.repository.getAllOntologies()) {
-            Map<Term,Double> allOntologyTermScores = this.hubDWRankScorer.getHubScores(ontology);
-            this.scores.putAll(allOntologyTermScores);
-        }
-    }
-
-    @Override
     public String getFeatureName() {
-        return "Hub_T";
+        return HubDWRank.FEATURE_NAME;
     }
 }

@@ -17,6 +17,8 @@ public class LabelSearch extends AbstractTermRelevanceFeature {
 
     Map<TermQuery,Map<Term,Double>> searchScores = new HashMap<>();
 
+    public static final String FEATURE_NAME = "LabelSearch_T";
+
     private static final Logger log = LoggerFactory.getLogger( LabelSearch.class );
 
     public LabelSearch(AbstractOntologyRepository repository, AbstractOntologySearchRepository searchRepository) {
@@ -31,10 +33,10 @@ public class LabelSearch extends AbstractTermRelevanceFeature {
         }
 
         if (this.searchScores.get(query).containsKey(term)) {
-            log.info(String.format("Query %s term %s score %s",query,term,this.searchScores.get(query).get(term)));
+            log.debug(String.format("Query %s term %s score %s",query,term,this.searchScores.get(query).get(term)));
             return this.searchScores.get(query).get(term);
         } else {
-            log.info(String.format("Query %s term %s score %s",query,term,"ZERO"));
+            log.debug(String.format("Query %s term %s score %s",query,term,"ZERO"));
             return 0.0;
         }
 
@@ -42,6 +44,6 @@ public class LabelSearch extends AbstractTermRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "LabelSearch_T";
+        return LabelSearch.FEATURE_NAME;
     }
 }

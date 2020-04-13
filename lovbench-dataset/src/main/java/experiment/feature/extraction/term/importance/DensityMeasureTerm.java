@@ -4,6 +4,8 @@ import experiment.feature.scoring.TermStatsScorer;
 import experiment.model.Ontology;
 import experiment.model.Term;
 import experiment.repository.triplestore.AbstractOntologyRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +27,10 @@ public class DensityMeasureTerm extends AbstractTermImportanceFeature {
 
     TermStatsScorer termStatsScorer;
 
+    public static final String FEATURE_NAME = "Density_T";
+
+    private static final Logger log = LoggerFactory.getLogger( DensityMeasureTerm.class );
+
     public DensityMeasureTerm(AbstractOntologyRepository repository, TermStatsScorer termStatsScorer) {
         super(repository);
         this.termStatsScorer = termStatsScorer;
@@ -40,7 +46,7 @@ public class DensityMeasureTerm extends AbstractTermImportanceFeature {
     }
 
     @Override
-    public Map<Term, Double> computeScores(Set<Term> termSet) {
+    public Map<Term, Double> computeScores(Set<Term> termSet, Ontology ontology) {
         Map<Term, Double> scores = new HashMap<>();
         for (Term term : termSet) {
             int countSubClasses = this.termStatsScorer.countSubclasses(term);
@@ -50,27 +56,27 @@ public class DensityMeasureTerm extends AbstractTermImportanceFeature {
             double densityScore = (weightSubClass * countSubClasses + weightSuperClass * countSuperClasses + weightRelations * countRelations + weightSiblings * countSiblings);
             scores.put(term, densityScore);
         }
-        this.setScores(scores);
+        this.scores.putAll(scores);
         return scores;
     }
 
-    @Override
-    protected void computeAllScores() {
-        Map<Ontology, Set<Term>> allTerms = this.repository.getAllTerms();
-        for (Map.Entry<Ontology, Set<Term>> ontologyTerms : allTerms.entrySet()) {
-            for (Term term : ontologyTerms.getValue()) {
-                int countSubClasses = this.termStatsScorer.countSubclasses(term);
-                int countSuperClasses = this.termStatsScorer.countSuperclasses(term);
-                int countRelations = this.termStatsScorer.countRelations(term);
-                int countSiblings = this.termStatsScorer.countSiblings(term);
-                double densityScore = (weightSubClass * countSubClasses + weightSuperClass * countSuperClasses + weightRelations * countRelations + weightSiblings * countSiblings);
-                this.scores.put(term,densityScore);
-            }
-        }
-    }
+//    @Override
+//    protected void computeAllScores() {
+//        Map<Ontology, Set<Term>> allTerms = this.repository.getAllTerms();
+//        for (Map.Entry<Ontology, Set<Term>> ontologyTerms : allTerms.entrySet()) {
+//            for (Term term : ontologyTerms.getValue()) {
+//                int countSubClasses = this.termStatsScorer.countSubclasses(term);
+//                int countSuperClasses = this.termStatsScorer.countSuperclasses(term);
+//                int countRelations = this.termStatsScorer.countRelations(term);
+//                int countSiblings = this.termStatsScorer.countSiblings(term);
+//                double densityScore = (weightSubClass * countSubClasses + weightSuperClass * countSuperClasses + weightRelations * countRelations + weightSiblings * countSiblings);
+//                this.scores.put(term,densityScore);
+//            }
+//        }
+//    }
 
     @Override
     public String getFeatureName() {
-        return "Density_T";
+        return DensityMeasureTerm.FEATURE_NAME;
     }
 }

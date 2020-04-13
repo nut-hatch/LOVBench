@@ -22,6 +22,8 @@ public class ClassMatchMeasure extends AbstractOntologyRelevanceFeature {
 
     private double beta = 0.4;
 
+    public static final String FEATURE_NAME = "Class_Match_O";
+
     private static final Logger log = LoggerFactory.getLogger( ClassMatchMeasure.class );
 
     public ClassMatchMeasure(AbstractOntologyRepository repository) {
@@ -61,14 +63,14 @@ public class ClassMatchMeasure extends AbstractOntologyRelevanceFeature {
             }
 
         }
-        log.info(exactMatchCount+"");
-        log.info(partialMatchCount+"");
+        log.debug(exactMatchCount+"");
+        log.debug(partialMatchCount+"");
         // compute CMM.
         return this.alpha * exactMatchCount + this.beta * partialMatchCount;
     }
 
     @Override
     public String getFeatureName() {
-        return "Class_Match_O";
+        return ClassMatchMeasure.FEATURE_NAME;
     }
 }

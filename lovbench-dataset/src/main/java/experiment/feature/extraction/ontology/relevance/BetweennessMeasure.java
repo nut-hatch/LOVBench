@@ -20,6 +20,8 @@ public class BetweennessMeasure extends AbstractOntologyRelevanceFeature {
 
     BetweennessScorer betweennessScorer;
 
+    public static final String FEATURE_NAME = "Betweenness_O";
+
     private static final Logger log = LoggerFactory.getLogger( BetweennessMeasure.class );
 
     public BetweennessMeasure(AbstractOntologyRepository repository, BetweennessScorer betweennessScorer) {
@@ -29,8 +31,6 @@ public class BetweennessMeasure extends AbstractOntologyRelevanceFeature {
 
     @Override
     public double getScore(AbstractQuery query, Ontology ontology) {
-        log.info(query.toString());
-        log.info(ontology.getOntologyUri());
         Set<Term> classMatches = this.repository.getTermQueryMatch(query, ontology, TermType.CLASS);
 
         double betweennessScore = 0.0;
@@ -47,6 +47,6 @@ public class BetweennessMeasure extends AbstractOntologyRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "Betweenness_O";
+        return BetweennessMeasure.FEATURE_NAME;
     }
 }

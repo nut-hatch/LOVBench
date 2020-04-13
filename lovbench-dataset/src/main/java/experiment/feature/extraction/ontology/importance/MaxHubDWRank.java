@@ -17,17 +17,9 @@ public class MaxHubDWRank extends AbstractOntologyImportanceFeature {
 
     HubDWRankScorer hubDWRankScorer;
 
-    private static final Logger log = LoggerFactory.getLogger( MaxHubDWRank.class );
+    public static final String FEATURE_NAME = "Max_Hub_O";
 
-    @Override
-    public Map<Ontology, Double> computeScores(Set<Ontology> ontologySet) {
-        Map<Ontology, Double> scores = new HashMap<>();
-        for (Ontology ontology : this.repository.getAllOntologies()) {
-            scores.put(ontology, this.hubDWRankScorer.getMaxHubScore(ontology));
-        }
-        this.setScores(scores);
-        return scores;
-    }
+    private static final Logger log = LoggerFactory.getLogger( MaxHubDWRank.class );
 
     public MaxHubDWRank(AbstractOntologyRepository repository, HubDWRankScorer hubDWRankScorer) {
         super(repository);
@@ -35,14 +27,18 @@ public class MaxHubDWRank extends AbstractOntologyImportanceFeature {
     }
 
     @Override
-    protected void computeAllScores() {
-        for (Ontology ontology : this.repository.getAllOntologies()) {
-            this.scores.put(ontology, this.hubDWRankScorer.getMaxHubScore(ontology));
+    public Map<Ontology, Double> computeScores(Set<Ontology> ontologySet) {
+        Map<Ontology, Double> scores = new HashMap<>();
+        for (Ontology ontology : ontologySet) {
+            scores.put(ontology, this.hubDWRankScorer.getMaxHubScore(ontology));
         }
+        this.scores.putAll(scores);
+        return scores;
     }
+
 
     @Override
     public String getFeatureName() {
-        return "Max_Hub_O";
+        return MaxHubDWRank.FEATURE_NAME;
     }
 }

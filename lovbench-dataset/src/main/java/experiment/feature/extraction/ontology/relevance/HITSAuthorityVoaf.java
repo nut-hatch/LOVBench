@@ -26,6 +26,7 @@ public class HITSAuthorityVoaf extends AbstractOntologyRelevanceFeature {
      */
     HITSScorer hits;
 
+    public static final String FEATURE_NAME = "HITS_Authority_Voaf_O";
 
     private static final Logger log = LoggerFactory.getLogger( HITSAuthorityVoaf.class );
 
@@ -55,7 +56,7 @@ public class HITSAuthorityVoaf extends AbstractOntologyRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "HITS_Authority_Voaf_O";
+        return HITSAuthorityVoaf.FEATURE_NAME;
     }
 
 }

@@ -18,30 +18,24 @@ import java.util.Set;
  */
 public class AuthorativenessDWRank extends AbstractOntologyImportanceFeature {
 
+    public static final String FEATURE_NAME = "Authorativeness_O";
+    PageRankScorer<Ontology,String> pageRank = new PageRankScorer<>();
+
     public AuthorativenessDWRank(AbstractOntologyRepository repository) {
         super(repository);
     }
 
     @Override
     public Map<Ontology, Double> computeScores(Set<Ontology> ontologySet) {
-        PageRankScorer<Ontology,String> pageRank = new PageRankScorer<>();
         Map<Ontology,Double> scores = pageRank.run(JungGraphUtil.createRepositoryGraph(this.repository.getOwlImports(null, true), EdgeType.DIRECTED));
         Map<Ontology,Double> normalizedScores = Normalise.zscore(scores);
         this.setScores(normalizedScores);
         return normalizedScores;
     }
 
-    @Override
-    protected void computeAllScores() {
-        // Essentially normal PR with implicit imports and normalization
-        PageRankScorer<Ontology,String> pageRank = new PageRankScorer<>();
-        Map<Ontology,Double> scores = pageRank.run(JungGraphUtil.createRepositoryGraph(this.repository.getOwlImports(null, true), EdgeType.DIRECTED));
-        Map<Ontology,Double> normalizedScores = Normalise.zscore(scores);
-        this.setScores(normalizedScores);
-    }
 
     @Override
     public String getFeatureName() {
-        return "Authorativeness_O";
+        return AuthorativenessDWRank.FEATURE_NAME;
     }
 }

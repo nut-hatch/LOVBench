@@ -24,6 +24,8 @@ public class BM25Ontology extends AbstractOntologyRelevanceFeature {
 
     double b = 0.75;
 
+    public static final String FEATURE_NAME = "BM25_O";
+
     private static final Logger log = LoggerFactory.getLogger( BM25Ontology.class );
 
     public BM25Ontology(AbstractOntologyRepository repository, TFIDFScorer tfidfScorer) {
@@ -44,11 +46,11 @@ public class BM25Ontology extends AbstractOntologyRelevanceFeature {
                         (       (this.tfidfScorer.tf(matchedTerm, ontology) * this.k + 1 ) /
                                 (this.tfidfScorer.tf(matchedTerm, ontology) + this.k * (1 - this.b + this.b * (this.repository.ontologySize(ontology) / this.repository.averageOntologySize())))
                         );
-                log.info(String.format("BM25 score for %s in ontology %s: %s", matchedTerm, ontology, bm25ForTerm));
+                log.debug(String.format("BM25 score for %s in ontology %s: %s", matchedTerm, ontology, bm25ForTerm));
                 bm25 += bm25ForTerm;
             }
         } else {
-            log.info(String.format("No matches for query %s and ontology %s. BM25 score = 0", query.toString(), ontology));
+            log.debug(String.format("No matches for query %s and ontology %s. BM25 score = 0", query.toString(), ontology));
         }
 
         return bm25;
@@ -56,6 +58,6 @@ public class BM25Ontology extends AbstractOntologyRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "BM25_O";
+        return BM25Ontology.FEATURE_NAME;
     }
 }

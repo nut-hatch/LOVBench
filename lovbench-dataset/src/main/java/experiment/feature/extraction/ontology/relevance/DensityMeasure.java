@@ -26,6 +26,8 @@ public class DensityMeasure extends AbstractOntologyRelevanceFeature {
 
     TermStatsScorer termStatsScorer;
 
+    public static final String FEATURE_NAME = "Density_O";
+
     public DensityMeasure(AbstractOntologyRepository repository, TermStatsScorer termStatsScorer) {
         super(repository);
         this.termStatsScorer = termStatsScorer;
@@ -62,6 +64,6 @@ public class DensityMeasure extends AbstractOntologyRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "Density_O";
+        return DensityMeasure.FEATURE_NAME;
     }
 }

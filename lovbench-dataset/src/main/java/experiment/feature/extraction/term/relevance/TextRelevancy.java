@@ -4,6 +4,8 @@ import experiment.model.Term;
 import experiment.model.query.TermQuery;
 import experiment.repository.triplestore.AbstractOntologyRepository;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 
@@ -13,6 +15,10 @@ import java.util.Set;
  * It counts how many keywords in the query match a given term.
  */
 public class TextRelevancy extends AbstractTermRelevanceFeature {
+
+    public static final String FEATURE_NAME = "Text_Relevancy_T";
+
+    private static final Logger log = LoggerFactory.getLogger( TextRelevancy.class );
 
     public TextRelevancy(AbstractOntologyRepository repository) {
         super(repository);
@@ -39,6 +45,6 @@ public class TextRelevancy extends AbstractTermRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "Text_Relevancy_T";
+        return TextRelevancy.FEATURE_NAME;
     }
 }

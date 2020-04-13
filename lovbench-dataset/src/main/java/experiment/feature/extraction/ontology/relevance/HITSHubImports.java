@@ -21,6 +21,8 @@ public class HITSHubImports extends AbstractOntologyRelevanceFeature {
      */
     HITSScorer hits;
 
+    public static final String FEATURE_NAME = "HITS_Hub_OwlImports_O";
+
     private static final Logger log = LoggerFactory.getLogger( HITSHubImports.class );
 
     public HITSHubImports(AbstractOntologyRepository repository, HITSScorer hits) {
@@ -39,6 +41,6 @@ public class HITSHubImports extends AbstractOntologyRelevanceFeature {
 
     @Override
     public String getFeatureName() {
-        return "HITS_Hub_OwlImports_O";
+        return HITSHubImports.FEATURE_NAME;
     }
 }

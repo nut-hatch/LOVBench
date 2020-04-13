@@ -7,6 +7,7 @@ import experiment.model.Ontology;
 import experiment.repository.triplestore.AbstractOntologyMetadataRepository;
 import experiment.repository.triplestore.AbstractOntologyRepository;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -18,6 +19,10 @@ public class PageRankVoaf extends AbstractOntologyImportanceFeature {
 
     AbstractOntologyMetadataRepository metadataRepository;
 
+    PageRankScorer<Ontology,String> pageRank = new PageRankScorer<>();
+
+    public static final String FEATURE_NAME = "PageRank_Voaf_O";
+
     public PageRankVoaf(AbstractOntologyRepository repository, AbstractOntologyMetadataRepository metadataRepository) {
         super(repository);
         this.metadataRepository = metadataRepository;
@@ -25,24 +30,33 @@ public class PageRankVoaf extends AbstractOntologyImportanceFeature {
 
     @Override
     public Map<Ontology, Double> computeScores(Set<Ontology> ontologySet) {
-        PageRankScorer<Ontology,String> pageRank = new PageRankScorer<>();
-        Map<Ontology, Double> scores = pageRank.run(JungGraphUtil.createRepositoryGraph(this.metadataRepository.getAllVoafRelations(), EdgeType.DIRECTED));
-        this.setScores(scores);
+        Map<Ontology, Double> scores = new HashMap<>();
+        Map<Ontology, Double> allScores = pageRank.run(JungGraphUtil.createRepositoryGraph(this.metadataRepository.getAllVoafRelations(), EdgeType.DIRECTED));
+        for (Ontology ontology : ontologySet) {
+            if (allScores.containsKey(ontology)) {
+                scores.put(ontology,allScores.get(ontology));
+            } else {
+                scores.put(ontology,0.0);
+            }
+        }
+        this.scores.putAll(scores);
         return scores;
     }
 
     @Override
-    protected void computeAllScores() {
-        PageRankScorer<Ontology,String> pageRank = new PageRankScorer<>();
-        this.setScores(pageRank.run(JungGraphUtil.createRepositoryGraph(this.metadataRepository.getAllVoafRelations(), EdgeType.DIRECTED)));
-    }
-
-    @Override
     public String getFeatureName() {
-        return "PageRank_Voaf_O";
+        return PageRankVoaf.FEATURE_NAME;
     }
 
-//    @Override
+    public PageRankScorer<Ontology, String> getPageRank() {
+        return pageRank;
+    }
+
+    public void setPageRank(PageRankScorer<Ontology, String> pageRank) {
+        this.pageRank = pageRank;
+    }
+
+    //    @Override
 //    public void computeAllScores() {
 //        Graph<Ontology, DefaultEdge> g = JGraphTUtil.createOntologyGraph(this.getRepository().getOwlImports());
 ////        GraphUtil.visualiseGraph(g);
