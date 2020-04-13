@@ -22,7 +22,7 @@ public class OntologyQuery extends AbstractQuery {
     private static final Logger log = LoggerFactory.getLogger( OntologyQuery.class );
 
     public OntologyQuery(String queryString) {
-        log.info(queryString);
+        log.debug(queryString);
         String[] query = queryString.split("//", -1);
         this.searchWords = Arrays.asList(query[0].split(" "));
         this.filterTags = query[1];
