@@ -6,9 +6,8 @@ import experiment.feature.scoring.AbstractScorer;
 import experiment.model.Ontology;
 import experiment.model.Term;
 import experiment.model.query.AbstractQuery;
-import experiment.model.query.OntologyQuery;
 import experiment.model.query.TermQuery;
-import experiment.repository.file.ExperimentConfiguration;
+import experiment.configuration.ExperimentConfiguration;
 import experiment.repository.file.FileUtil;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
@@ -124,7 +123,7 @@ public class LOVScorer extends AbstractScorer {
             try {
                 // Create url string based on lov api base path from config + query
                 String url = ExperimentConfiguration.getInstance().getLovAPITerms() + query.getLovAPIQueryString() + "&page_size=500";
-                log.info(url);
+                log.debug(url);
                 try {
                     TimeUnit.MILLISECONDS.sleep(12000);
                 } catch (InterruptedException e) {
@@ -175,7 +174,7 @@ public class LOVScorer extends AbstractScorer {
             try {
                 //https://lov.linkeddata.es/dataset/lov/api/v2/vocabulary/search?q=time&lang=English
                 String url = ExperimentConfiguration.getInstance().getLovAPIVocabs() + query.getLovAPIQueryString() + "&page_size=500";
-                log.info(url);
+                log.debug(url);
                 try {
                     TimeUnit.MILLISECONDS.sleep(6000);
                 } catch (InterruptedException e) {
@@ -308,9 +307,8 @@ public class LOVScorer extends AbstractScorer {
                 while ((arrLine = csvReader.readNext()) != null) {
                     AbstractQuery ontologyQuery = new TermQuery(arrLine[0]);
                     Ontology ontology = new Ontology(arrLine[1]);
-                    log.info(String.format("LOV score read from file: %s - %s", ontologyQuery.toString(), ontology.toString()));
                     double score = Double.parseDouble(arrLine[2]);
-                    log.info(String.format("LOV score read from file: %s - %s - %s", ontologyQuery.toString(), ontology.toString(), score));
+                    log.debug(String.format("LOV score read from file: %s - %s - %s", ontologyQuery.toString(), ontology.toString(), score));
                     if (!scores.containsKey(ontologyQuery)) {
                         scores.put(ontologyQuery, new HashMap<>());
                     }

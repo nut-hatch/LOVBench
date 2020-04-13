@@ -8,6 +8,8 @@ import experiment.model.Ontology;
 import experiment.model.Term;
 import experiment.repository.file.LOVPrefixes;
 import experiment.repository.triplestore.AbstractOntologyRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,7 +23,7 @@ public class HubDWRankScorer extends AbstractScorer {
     /**
      * The PageRankScorer.
      */
-    PageRankScorer<Term,String> pageRankScorer = new PageRankScorer<>();
+    PageRankScorer<Term, String> pageRankScorer = new PageRankScorer<>();
 
     /**
      * Repository with ontology collection.
@@ -31,17 +33,19 @@ public class HubDWRankScorer extends AbstractScorer {
     /**
      * Caches the max hub scores per ontology.
      */
-    Map<Ontology,Double> maxHubScoreCache = new HashMap<>();
+    Map<Ontology, Double> maxHubScoreCache = new HashMap<>();
 
     /**
      * Caches the min hub score per ontology.
      */
-    Map<Ontology,Double> minHubScoreCache = new HashMap<>();
+    Map<Ontology, Double> minHubScoreCache = new HashMap<>();
 
     /**
      * Caches the hub score for all terms.
      */
-    Map<Ontology, Map<Term,Double>> hubScoreCache = new HashMap<>();
+    Map<Ontology, Map<Term, Double>> hubScoreCache = new HashMap<>();
+
+    private static final Logger log = LoggerFactory.getLogger(HubDWRankScorer.class);
 
     public HubDWRankScorer(AbstractOntologyRepository repository) {
         this.repository = repository;
@@ -53,35 +57,38 @@ public class HubDWRankScorer extends AbstractScorer {
      * @param ontology
      * @return
      */
-    public Map<Term,Double> getHubScores(Ontology ontology) {
+    public Map<Term, Double> getHubScores(Ontology ontology) {
         if (this.hubScoreCache.containsKey(ontology)) {
             return this.hubScoreCache.get(ontology);
         }
 
-        Map<Term,Double> filteredOntologyTermScores = new HashMap<>();
+        Map<Term, Double> filteredOntologyTermScores = new HashMap<>();
 
-        Map<Term,Double> ontologyTermScores = this.pageRankScorer.run(JungGraphUtil.createOntologyGraph(this.repository.getOntologyGraphTriples(ontology, true), EdgeType.DIRECTED));
+        Map<Term, Double> ontologyTermScores = this.pageRankScorer.run(JungGraphUtil.createOntologyGraph(this.repository.getOntologyGraphTriples(ontology, true), EdgeType.DIRECTED));
 
-        for (Map.Entry<Term,Double> ontologyTermScore : ontologyTermScores.entrySet()) {
-            Term term = ontologyTermScore.getKey();
-            double score = ontologyTermScore.getValue();
-            if (!LOVPrefixes.getInstance().isBlankNode(term.getTermUri()) && term.getOntologyUriOfTerm().equals(ontology.getOntologyUri())) {
+        double minHub = Double.MAX_VALUE;
+        double maxHub = 0.0;
+        for (Term term : this.repository.getAllTerms(ontology)) {
+            if (ontologyTermScores.containsKey(term)) {
+                double score = ontologyTermScores.get(term);
+                if (Double.compare(score, minHub) == -1) {
+                    minHub = score;
+                }
+                if (Double.compare(score, maxHub) == 1) {
+                    maxHub = score;
+                }
                 filteredOntologyTermScores.put(term, score);
+            } else {
+                if (Double.compare(0.0, minHub) == -1) {
+                    minHub = 0.0;
+                }
+                filteredOntologyTermScores.put(term, 0.0);
             }
         }
+        this.maxHubScoreCache.put(ontology, maxHub);
+        this.minHubScoreCache.put(ontology, minHub);
 
-//        Map<Term,Double> normalizedScores = Normalise.zscore(filteredOntologyTermScores);
-        Map<Term,Double> normalizedScores = filteredOntologyTermScores;
-
-        if (normalizedScores != null && !normalizedScores.isEmpty()) {
-            this.maxHubScoreCache.put(ontology,Collections.max(normalizedScores.values()));
-            this.minHubScoreCache.put(ontology,Collections.min(normalizedScores.values()));
-        } else {
-            this.maxHubScoreCache.put(ontology, 0.0);
-            this.minHubScoreCache.put(ontology, 0.0);
-        }
-
-        return normalizedScores;
+        return filteredOntologyTermScores;
     }
 
     /**
@@ -99,6 +106,7 @@ public class HubDWRankScorer extends AbstractScorer {
 
     /**
      * Returns the min hub score for an ontology.
+     *
      * @param ontology
      * @return
      */

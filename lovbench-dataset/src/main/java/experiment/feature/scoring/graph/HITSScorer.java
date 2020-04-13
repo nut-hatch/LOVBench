@@ -90,7 +90,7 @@ public class HITSScorer extends AbstractScorer {
                 }
             }
         } else {
-            log.info("Empty Query Match!!");
+            log.debug("Empty Query Match!!");
         }
         Graph<Ontology,String> graph = JungGraphUtil.createRepositoryGraph(graphRelationsOfQueryMatch, EdgeType.DIRECTED);
 
@@ -105,7 +105,7 @@ public class HITSScorer extends AbstractScorer {
                 this.hubScores.put(query, ontology, hits.getVertexScore(ontology).hub);
             }
         } else {
-            log.info(String.format("Query lead to zero matches or to a graph with no import edges for query %s", query.toString()));
+            log.debug(String.format("Query lead to zero matches or to a graph with no import edges for query %s", query.toString()));
             this.authorityScores.put(query, new Ontology(""), 0.0);
             this.hubScores.put(query, new Ontology(""), 0.0);
         }

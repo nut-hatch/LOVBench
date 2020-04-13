@@ -50,7 +50,7 @@ public class PageRankScorer<V, E> extends AbstractScorer {
      * @return
      */
     public Map<V,Double> run(Graph<V,E> graph) {
-        log.info(String.format("Run PR for a graph with %s vertices and %s edges", graph.getVertexCount(), graph.getEdgeCount()));
+        log.debug(String.format("Run PR for a graph with %s vertices and %s edges", graph.getVertexCount(), graph.getEdgeCount()));
         Map<V,Double> pageRankScores = new HashMap<>();
 
         PageRank<V,E> pageRank = new PageRank<V,E>(graph, this.dampingFactor);

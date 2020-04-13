@@ -71,8 +71,7 @@ public class BetweennessScorer extends AbstractScorer {
      * @param ontology
      */
     public void runBetweennessScorer(Ontology ontology) {
-        List<Triple<Term, Term, Term>> ontologyTriples = this.repository.getOntologyGraphTriples(ontology);
-        Graph<Term,String> ontologyGraph = JungGraphUtil.createOntologyGraph(ontologyTriples, EdgeType.UNDIRECTED);
+        Graph<Term,String> ontologyGraph = JungGraphUtil.createOntologyGraph(this.repository.getOntologyGraphTriples(ontology), EdgeType.UNDIRECTED);
         BetweennessCentrality ranker = new BetweennessCentrality(ontologyGraph,true, true);
         ranker.evaluate();
 
@@ -80,33 +79,35 @@ public class BetweennessScorer extends AbstractScorer {
 
         String termPrefixForOntology = LOVPrefixes.getInstance().getTermPrefixForOntologyPrefix(ontology.getOntologyPrefix());
 
+        // Missing ontologies in the dump have to be skipped - which will not have a prefix specified.
         this.betweennessScoreCache.put(ontology, new HashMap<>());
+        if (termPrefixForOntology != null && !termPrefixForOntology.isEmpty()) {
 
-        log.info(String.format("Count scores: %s", ranker.getRankings().size()));
+            log.debug(String.format("Count scores: %s", ranker.getRankings().size()));
 
-        while (iterator.hasNext()) {
-            Ranking<?> ranking = iterator.next();
-            Term ranked = null;
-            if (ranking.getRanked() instanceof Term) {
-                ranked = (Term)ranking.getRanked();
+            while (iterator.hasNext()) {
+                Ranking<?> ranking = iterator.next();
+                Term ranked = null;
+                if (ranking.getRanked() instanceof Term) {
+                    ranked = (Term) ranking.getRanked();
 
-            } else if (ranking.getRanked() instanceof String) {
-                String termUri = ((String) ranking.getRanked()).split("::")[0];
-                ranked = new Term(termUri);
-            }
-            double score = ranking.rankScore;
-            log.debug(String.format("Betweenness score for term %s in ontology %s: %s", ranked, ontology.getOntologyUri(), score));
-
-            // We filter ontology terms so late because all graph nodes should be considered for the scoring.
-            if (ranked.getTermUri().startsWith(termPrefixForOntology)) {
-                if (this.betweennessScoreCache.get(ontology).containsKey(ranked)) {
-                    double tmp = this.betweennessScoreCache.get(ontology).get(ranked);
-                    this.betweennessScoreCache.get(ontology).put(ranked, tmp+score);
-                } else {
-                    this.betweennessScoreCache.get(ontology).put(ranked, score);
+                } else if (ranking.getRanked() instanceof String) {
+                    String termUri = ((String) ranking.getRanked()).split("::")[0];
+                    ranked = new Term(termUri);
                 }
-            } else {
-                log.debug(String.format("Score dismissed: %s", ranked));
+                double score = ranking.rankScore;
+                log.debug(String.format("Betweenness score for term %s in ontology %s: %s", ranked.toString(), ontology.getOntologyUri(), score));
+                // We filter ontology terms so late because all graph nodes should be considered for the scoring.
+                if (ranked.getTermUri().startsWith(termPrefixForOntology)) {
+                    if (this.betweennessScoreCache.get(ontology).containsKey(ranked)) {
+                        double tmp = this.betweennessScoreCache.get(ontology).get(ranked);
+                        this.betweennessScoreCache.get(ontology).put(ranked, tmp + score);
+                    } else {
+                        this.betweennessScoreCache.get(ontology).put(ranked, score);
+                    }
+                } else {
+                    log.debug(String.format("Score dismissed: %s", ranked));
+                }
             }
         }
     }
