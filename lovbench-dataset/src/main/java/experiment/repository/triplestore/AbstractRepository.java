@@ -21,10 +21,18 @@ public abstract class AbstractRepository {
         this.dbName = dbName;
     }
 
+    public AbstractRepository(AbstractConnector connector) {
+        this.connector = connector;
+    }
+
     /**
-     * Function that creates and return the Connector object.
+     * Function that creates and returns the Connector object.
      *
      * @return AbstractConnector
      */
     public abstract AbstractConnector getConnector();
+
+    public void setConnector(AbstractConnector connector) {
+        this.connector = connector;
+    }
 }

@@ -2,10 +2,9 @@ package experiment.repository.triplestore;
 
 import experiment.model.Term;
 import experiment.model.query.AbstractQuery;
-import experiment.repository.file.ExperimentConfiguration;
+import experiment.configuration.ExperimentConfiguration;
 import experiment.repository.triplestore.connector.AbstractConnector;
 import experiment.repository.triplestore.connector.StardogConnector;
-import org.apache.lucene.queryparser.classic.QueryParser;
 import org.openrdf.query.BindingSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +24,7 @@ public class LOVSearchRepository extends AbstractOntologySearchRepository {
     @Override
     public Map<Term, Double> search(AbstractQuery query) {
         Map<Term, Double> result = new HashMap<>();
-        log.info(query.toString());
+        log.debug(query.toString());
         String querySearch = String.join("|", query.getSearchWords());
 //        StringBuilder sb = new StringBuilder();
 //        for (String queryWord : query.getSearchWords()) {

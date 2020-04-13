@@ -1,20 +1,20 @@
 package experiment.repository.triplestore;
 
+import com.hp.hpl.jena.rdf.model.Resource;
 import experiment.model.Ontology;
 import experiment.model.Term;
 import experiment.model.query.AbstractQuery;
 import experiment.model.query.TermQuery;
 import experiment.model.query.enums.TermType;
-import experiment.repository.file.ExperimentConfiguration;
+import experiment.configuration.ExperimentConfiguration;
 import experiment.repository.triplestore.connector.AbstractConnector;
+import experiment.repository.triplestore.connector.JenaConnector;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * The abstract repository defines all functions that query the underlying ontology collection required to compute the features.
@@ -22,16 +22,69 @@ import java.util.Set;
  *
  */
 public abstract class AbstractOntologyRepository extends AbstractRepository {
+//  # DISTINCT to cope with properties that are typed both as rdf:Property and owl:XXXProperty
+//    {
+//    # RDFS
+//            ?property a rdf:Property
+//    } UNION {
+//    # OWL
+//                ?property a owl:DatatypeProperty
+//    } UNION {
+//    ?property a owl:ObjectProperty
+//    } UNION {
+//    ?property a owl:AnnotationProperty
+//    } UNION {
+//    ?property a owl:FunctionalProperty
+//    } UNION {
+//    ?property a owl:InverseFunctionalProperty
+//    } UNION {
+//    ?property a owl:IrreflexiveProperty
+//    } UNION {
+//    ?property a owl:ReflexiveProperty
+//    } UNION {
+//    ?property a owl:SymmetricProperty
+//    } UNION {
+//    ?property a owl:TransitiveProperty
+//    } UNION {
+//    ?property a owl:OntologyProperty
+//    } UNION {
+//    ?property a owl:AsymmetricProperty
+//    }
+
+    public static final String TYPE_PROPERTY_VALUES = " " + String.join(" ", Arrays.asList(
+            "<http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>",
+            "<http://www.w3.org/2000/01/rdf-schema#Property>",
+            "<http://www.w3.org/2002/07/owl#DatatypeProperty>",
+            "<http://www.w3.org/2002/07/owl#ObjectProperty>",
+            "<http://www.w3.org/2002/07/owl#AnnotationProperty>",
+            "<http://www.w3.org/2002/07/owl#OntologyProperty>",
+            "<http://www.w3.org/2002/07/owl#FunctionalProperty>",
+            "<http://www.w3.org/2002/07/owl#InverseFunctionalProperty>",
+            "<http://www.w3.org/2002/07/owl#IrreflexiveProperty>",
+            "<http://www.w3.org/2002/07/owl#ReflexiveProperty>",
+            "<http://www.w3.org/2002/07/owl#TransitiveProperty>",
+            "<http://www.w3.org/2002/07/owl#AsymmetricProperty>"
+    )) + " ";
 
     /**
      * String containing all classes that describe a property in the vocabulary.
      */
-    public static final String TYPE_PROPERTY_VALUES = " rdf:Property rdfs:Property owl:DatatypeProperty owl:ObjectProperty owl:AnnotationProperty owl:OntologyProperty ";
+//    public static final String TYPE_PROPERTY_VALUES = "" + String.join(" ", Arrays.asList(
+//            "<http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>",
+//            "<http://www.w3.org/2000/01/rdf-schema#Property>",
+//            "<http://www.w3.org/2002/07/owl#DatatypeProperty>",
+//            "<http://www.w3.org/2002/07/owl#ObjectProperty>",
+//            "<http://www.w3.org/2002/07/owl#AnnotationProperty>",
+//            "<http://www.w3.org/2002/07/owl#OntologyProperty>"
+//    )) + " ";
 
     /**
      * String containing all classes that describe a class in the vocabulary.
      */
-    public static final String TYPE_CLASS_VALUES = " rdfs:Class owl:Class ";
+    public static final String TYPE_CLASS_VALUES = " " + String.join(" ", Arrays.asList(
+            "<http://www.w3.org/2000/01/rdf-schema#Class>",
+            "<http://www.w3.org/2002/07/owl#Class>"
+    )) + " ";
 
     /**
      * Query match condition for AKTIVERank.
@@ -58,6 +111,22 @@ public abstract class AbstractOntologyRepository extends AbstractRepository {
         super(dbName);
     }
 
+    public AbstractOntologyRepository(AbstractConnector connector) {
+        super(connector);
+        // Make sure the LOV graph is NOT in the ontology repository.
+        if (connector instanceof JenaConnector) {
+            ((JenaConnector) this.getConnector()).getDataset().removeNamedModel(ExperimentConfiguration.getInstance().getLOVgraph());
+        }
+    }
+
+
+    public void setConnector(AbstractConnector connector) {
+        this.connector = connector;
+        // Make sure the LOV graph is NOT in the ontology repository.
+        if (connector instanceof JenaConnector) {
+            ((JenaConnector) this.getConnector()).getDataset().removeNamedModel(ExperimentConfiguration.getInstance().getLOVgraph());
+        }
+    }
 
     /**
      * Returns the sparql value string for properties.
@@ -363,13 +432,40 @@ public abstract class AbstractOntologyRepository extends AbstractRepository {
      *
      * @return
      */
-    public abstract Map<Ontology,Set<Term>> getAllTerms();
+    public Map<Ontology, Set<Term>> getAllTerms() {
+        Map<Ontology, Set<Term>> allTerms = new HashMap<>();
+
+        for (Ontology ontology : this.getAllOntologies()) {
+            Set<Term> termResults = this.getAllTerms(ontology);
+
+            if (!allTerms.containsKey(ontology)) {
+                allTerms.put(ontology, new HashSet<>());
+            }
+            for (Term term : termResults) {
+                allTerms.get(ontology).add(term);
+            }
+        }
+
+        return allTerms;
+    }
 
     /**
      * Gets all Terms contained in the repository.
      *
      * @return
      */
-    public abstract Set<Term> getAllTerms(Ontology ontology);
+    public Set<Term> getAllTerms(Ontology ontology) {
+        return this.getAllTerms(ontology, TermType.ANY);
+    }
+
+    public abstract Set<Term> getAllTerms(Ontology ontology, TermType termType);
+
+    public abstract int countAppearanceOfTermPrefix(String vocabURI, String termPrefix);
+
+    public abstract Set<Resource> getAllURIs(String vocabURI);
+
+    public abstract int getPropertyCount(Ontology ontology);
+
+    public abstract int getClassCount(Ontology ontology);
 
 }

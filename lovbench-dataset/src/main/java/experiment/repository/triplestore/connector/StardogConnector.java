@@ -18,7 +18,7 @@ import java.util.List;
  * Implements the connection to the Stardog triple store.
  *
  */
-public class StardogConnector extends AbstractConnector {
+public class StardogConnector extends AbstractDBConnector {
 
     /**
      * Repository object to the database.
@@ -40,8 +40,8 @@ public class StardogConnector extends AbstractConnector {
     }
 
     @Override
-    public List<BindingSet> selectQuery(String sparql) {
-        log.info(sparql);
+    public List<BindingSet> selectQuery(String sparql, boolean appendPrefix) {
+        log.debug(sparql);
         RepositoryConnection connection = this.repository.getConnection();
 
         TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, sparql);

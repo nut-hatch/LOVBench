@@ -1,7 +1,12 @@
 package experiment.repository.triplestore;
 
+import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.rdf.model.ResourceFactory;
+import com.hp.hpl.jena.vocabulary.XSD;
 import experiment.model.Ontology;
-import experiment.repository.file.ExperimentConfiguration;
+import experiment.configuration.ExperimentConfiguration;
+import experiment.model.Prefix;
+import experiment.model.Term;
 import experiment.repository.file.LOVPrefixes;
 import experiment.repository.triplestore.connector.AbstractConnector;
 import experiment.repository.triplestore.connector.StardogConnector;
@@ -10,10 +15,7 @@ import org.openrdf.query.BindingSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Repository implementation for LOV.n3 database in stardog triple store.
@@ -65,17 +67,110 @@ public class LOVMetadataRepository extends AbstractOntologyMetadataRepository {
 
     @Override
     public Set<Pair<Ontology, Ontology>> getAllVoafRelations() {
+        AbstractOntologyRepository lovRepository = ExperimentConfiguration.getInstance().getRepository();
+        Set<Ontology> allOntologies = lovRepository.getAllOntologies();
         Set<Pair<Ontology, Ontology>> ontologyRelations = new HashSet<>();
 
-        String sparql = "SELECT DISTINCT ?vocabPrefix ?hasVoafRelationToPrefix { ?vocabURI a <http://purl.org/vocommons/voaf#Vocabulary>. ?vocabURI vann:preferredNamespacePrefix ?vocabPrefix. ?vocabURI <http://www.w3.org/ns/dcat#distribution> ?distribution . ?distribution <http://purl.org/dc/terms/issued> ?date . ?distribution <http://purl.org/vocommons/voaf#specializes>|<http://purl.org/vocommons/voaf#reliesOn>|<http://purl.org/vocommons/voaf#extends>|<http://purl.org/vocommons/voaf#metadataVoc>|<http://purl.org/vocommons/voaf#generalizes> ?hasVoafRelationTo . ?hasVoafRelationTo <http://purl.org/vocab/vann/preferredNamespacePrefix> ?hasVoafRelationToPrefix . filter not exists { ?vocabURI <http://www.w3.org/ns/dcat#distribution>/<http://purl.org/dc/terms/issued> ?dateForFilter filter (xsd:date(?date) < xsd:date(?dateForFilter)) } } ORDER BY ?vocabPrefix";
+        String sparql = "SELECT DISTINCT ?vocabPrefix ?hasVoafRelationToPrefix ?vocabURI ?hasVoafRelationTo { ?vocabURI a <http://purl.org/vocommons/voaf#Vocabulary>. ?vocabURI <http://purl.org/vocab/vann/preferredNamespacePrefix> ?vocabPrefix. ?vocabURI <http://www.w3.org/ns/dcat#distribution> ?distribution . ?distribution <http://purl.org/dc/terms/issued> ?date . ?distribution <http://purl.org/vocommons/voaf#specializes>|<http://purl.org/vocommons/voaf#reliesOn>|<http://purl.org/vocommons/voaf#extends>|<http://purl.org/vocommons/voaf#metadataVoc>|<http://purl.org/vocommons/voaf#generalizes> ?hasVoafRelationTo . ?hasVoafRelationTo <http://purl.org/vocab/vann/preferredNamespacePrefix> ?hasVoafRelationToPrefix . filter not exists { ?vocabURI <http://www.w3.org/ns/dcat#distribution>/<http://purl.org/dc/terms/issued> ?dateForFilter filter (<"+ XSD.getURI()+"date>(?date) < <"+ XSD.getURI()+"date>(?dateForFilter)) } } ORDER BY ?vocabPrefix";
         List<BindingSet> relationResults = this.getConnector().selectQuery(sparql);
 
         for (BindingSet relationResult : relationResults) {
-            String fromOntology = relationResult.getValue("vocabPrefix").stringValue();
-            String toOntology = relationResult.getValue("hasVoafRelationToPrefix").stringValue();
-            ontologyRelations.add(Pair.of(new Ontology(LOVPrefixes.getInstance().getOntologyUri(fromOntology)), new Ontology(LOVPrefixes.getInstance().getOntologyUri(toOntology))));
+//            String fromOntology = relationResult.getValue("vocabPrefix").stringValue();
+//            String toOntology = relationResult.getValue("hasVoafRelationToPrefix").stringValue();
+            Ontology fromOntology = new Ontology(relationResult.getValue("vocabURI").stringValue());
+            Ontology toOntology = new Ontology(relationResult.getValue("hasVoafRelationTo").stringValue());
+//            log.info(relationResult.getValue("vocabURI").stringValue());
+//            log.info(relationResult.getValue("vocabPrefix").stringValue());
+//            log.info(relationResult.getValue("hasVoafRelationTo").stringValue());
+//            log.info(relationResult.getValue("hasVoafRelationToPrefix").stringValue());
+            if (allOntologies.contains(fromOntology) && allOntologies.contains(toOntology)) {
+                ontologyRelations.add(Pair.of(fromOntology,toOntology));
+            }
+//            ontologyRelations.add(Pair.of(new Ontology(LOVPrefixes.getInstance().getOntologyUri(fromOntology)), new Ontology(LOVPrefixes.getInstance().getOntologyUri(toOntology))));
         }
 
         return ontologyRelations;
+    }
+
+    @Override
+    public Set<Prefix> getAllVocabPrefixes() {
+        AbstractOntologyRepository lovRepository = ExperimentConfiguration.getInstance().getRepository();
+
+        String sparql = "SELECT DISTINCT ?vocabURI ?vocabPrefix ?termPrefix { ?vocabURI a <http://purl.org/vocommons/voaf#Vocabulary> . ?vocabURI <http://purl.org/vocab/vann/preferredNamespacePrefix> ?vocabPrefix . ?vocabURI <http://purl.org/vocab/vann/preferredNamespaceUri> ?termPrefix . }";
+        List<BindingSet> vocabResults = this.getConnector().selectQuery(sparql);
+
+        Set<Prefix> prefixes = new HashSet<>();
+        for (BindingSet vocabResult : vocabResults) {
+            // Values as in the NQ file
+            String vocabURI = vocabResult.getValue("vocabURI").stringValue();
+            String vocabPrefix = vocabResult.getValue("vocabPrefix").stringValue();
+            String termPrefix = vocabResult.getValue("termPrefix").stringValue();
+
+            // check if the termprefix is actually used
+            int termPrefixAppearance = lovRepository.countAppearanceOfTermPrefix(vocabURI,termPrefix);
+
+            // Handle incomplete term prefix with best effort
+            Prefix prefix;
+            if ((termPrefix.charAt(termPrefix.length()-1) != '#' && termPrefix.charAt(termPrefix.length()-1) != '/') || termPrefixAppearance == 0) {
+                // We have to look into the actual ontology to see which prefix or prefixes are used...
+                int countHash = lovRepository.countAppearanceOfTermPrefix(vocabURI,termPrefix+"#");
+                int countSlash = lovRepository.countAppearanceOfTermPrefix(vocabURI,termPrefix+"/");
+                int countSlashHash = lovRepository.countAppearanceOfTermPrefix(vocabURI,termPrefix+"/#"); // nothing is impossible...
+
+                if ((countHash == 0 && countSlash == 0 && countSlashHash == 0) || termPrefixAppearance == 0) {
+                    log.error("------- Next Entry -------");
+                    log.error("No reliable term prefix found for " + vocabURI + "! This should be fixed in the LOV/VOAF graph.");
+                    log.error("Trying our best to find the most likeliest actual term prefix......");
+
+                    Set<Resource> allURIs = lovRepository.getAllURIs(vocabURI);
+                    if (allURIs.size() > 0) {
+                        Map<String, Integer> countNamespaceOccurences = new HashMap<>();
+                        for (Resource resource : allURIs) {
+                            if (!countNamespaceOccurences.containsKey(resource.getNameSpace())) {
+                                countNamespaceOccurences.put(resource.getNameSpace(), 1);
+                            } else {
+                                countNamespaceOccurences.put(resource.getNameSpace(), countNamespaceOccurences.get(resource.getNameSpace()) + 1);
+                            }
+                        }
+                        Map.Entry<String, Integer> max = null;
+                        for (Map.Entry<String, Integer> entry : countNamespaceOccurences.entrySet()) {
+                            if (max == null || entry.getValue() > max.getValue()) {
+                                max = entry;
+                            }
+                        }
+                        log.error("Our best guess for vocab " + vocabURI + " is: " + max.getKey());
+                        prefix = new Prefix(vocabPrefix, vocabURI, max.getKey(), "");
+                    } else {
+                        log.error("ALERT FOR " + vocabURI + ": The ontology defined in the voaf graph is either missing in the dump or does not contain a single URI node and will be ignored.");
+                        prefix = null;
+                    }
+
+                } else if (countHash >= countSlash && countHash >= countSlashHash) {
+                    if (countHash == countSlash) {
+                        prefix = new Prefix(vocabPrefix, vocabURI, termPrefix+"#", termPrefix+"/");
+                    } else if (countHash == countSlashHash) {
+                        prefix = new Prefix(vocabPrefix, vocabURI, termPrefix+"#", termPrefix+"/#");
+                    } else {
+                        prefix = new Prefix(vocabPrefix, vocabURI, termPrefix+"#", "");
+                    }
+                } else if (countSlash >= countSlashHash) {
+                    if (countHash == countSlashHash) {
+                        prefix = new Prefix(vocabPrefix, vocabURI, termPrefix + "/", termPrefix + "/#");
+                    } else {
+                        prefix = new Prefix(vocabPrefix, vocabURI, termPrefix + "/", "");
+                    }
+                } else {
+                    prefix = new Prefix(vocabPrefix, vocabURI, termPrefix + "/#", "");
+                }
+            } else {
+                prefix = new Prefix(vocabPrefix, vocabURI, termPrefix, "");
+            }
+            if (prefix != null) {
+                prefixes.add(prefix);
+            }
+        }
+        Prefix xsd = new Prefix("xsd", XSD.getURI(), XSD.getURI(), "");
+        prefixes.add(xsd);
+        return prefixes;
     }
 }

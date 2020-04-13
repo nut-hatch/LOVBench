@@ -13,38 +13,16 @@ import java.util.List;
 public abstract class AbstractConnector {
 
     /**
-     * Database name for the connection.
-     */
-    String dbName;
-
-    /**
-     * Server address for the connection.
-     */
-    String server;
-
-    /**
-     * Username for the connection.
-     */
-    String user;
-
-    /**
-     * Password for the connection
-     */
-    String password;
-
-    public AbstractConnector(String dbName, String server, String user, String password) {
-        this.dbName = dbName;
-        this.server = server;
-        this.user = user;
-        this.password = password;
-    }
-
-    /**
      * Runs a select query on the database and returns the result as a list of BindingSet.
      *
      * @param sparql
      * @return List<BindingSet>
      */
-    abstract public List<BindingSet> selectQuery(String sparql);
+    public List<BindingSet> selectQuery(String sparql) {
+        return this.selectQuery(sparql, false);
+    }
+
+
+    abstract public List<BindingSet> selectQuery(String sparql, boolean appendPrefix);
 
 }

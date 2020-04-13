@@ -2,13 +2,15 @@ package experiment.repository.triplestore;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.rdf.model.ResourceFactory;
 import experiment.model.Ontology;
 import experiment.model.Term;
 import experiment.model.query.AbstractQuery;
 import experiment.model.query.TermQuery;
 import experiment.model.query.enums.TermType;
 import experiment.model.query.enums.TypeFilter;
-import experiment.repository.file.ExperimentConfiguration;
+import experiment.configuration.ExperimentConfiguration;
 import experiment.repository.file.LOVPrefixes;
 import experiment.repository.triplestore.connector.AbstractConnector;
 import experiment.repository.triplestore.connector.StardogConnector;
@@ -148,7 +150,7 @@ public class LOVRepository extends AbstractOntologyRepository {
     public Map<Ontology, Set<Term>> getQueryMatch(AbstractQuery query) {
         Map<Ontology, Set<Term>> queryMatch = new HashMap<>();
         String sparql = "SELECT DISTINCT ?g ?uri WHERE { GRAPH ?g { ?uri a ?valueType . OPTIONAL { " + this.getQueryMatchConstraint("?uri", "?value") + " } " + query.getQueryFilterString( "<http://jena.hpl.hp.com/ARQ/function#localname>(?uri)", "?value") + "  FILTER (isuri(?uri)) . VALUES ?valueType " + AbstractOntologyRepository.getAllTypesValuesString() + " . } }";
-        List<BindingSet> uriMatches = this.getConnector().selectQuery(sparql);
+        List<BindingSet> uriMatches = this.getConnector().selectQuery(sparql, true);
         for (BindingSet uriMatch : uriMatches) {
             Ontology matchedOntology = new Ontology(uriMatch.getBinding("g").getValue().stringValue());
             Term matchedTerm = new Term(uriMatch.getBinding("uri").getValue().stringValue());
@@ -185,17 +187,8 @@ public class LOVRepository extends AbstractOntologyRepository {
     @Override
     public Set<Term> getTermQueryMatch(AbstractQuery query, Ontology ontology, TermType termType) {
         Set<Term> queryMatch = new HashSet<>();
-        String termTypes = AbstractOntologyRepository.getAllTypesValuesString();
-        switch (termType) {
-            case CLASS:
-                termTypes = AbstractOntologyRepository.getTypeClassValuesString();
-                break;
-            case PROPERTY:
-                termTypes = AbstractOntologyRepository.getTypePropertyValuesString();
-                break;
-        }
-        String sparql = "SELECT DISTINCT ?uri WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?uri a ?termType . OPTIONAL { " + this.getQueryMatchConstraint("?uri", "?value") + " } " + query.getQueryFilterString( "<http://jena.hpl.hp.com/ARQ/function#localname>(?uri)", "?value") + "  FILTER (isuri(?uri)) . VALUES ?termType " + termTypes + " . } }";
-        List<BindingSet> uriMatches = this.getConnector().selectQuery(sparql);
+        String sparql = "SELECT DISTINCT ?uri WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?uri a ?termType . OPTIONAL { " + this.getQueryMatchConstraint("?uri", "?value") + " } " + query.getQueryFilterString( "<http://jena.hpl.hp.com/ARQ/function#localname>(?uri)", "?value") + "  FILTER (isuri(?uri)) . VALUES ?termType " + this.getValueTypesForTermType(termType) + " . } }";
+        List<BindingSet> uriMatches = this.getConnector().selectQuery(sparql, true);
         for (BindingSet uriMatch : uriMatches) {
             Term matchedTerm = new Term(uriMatch.getBinding("uri").getValue().stringValue());
             queryMatch.add(matchedTerm);
@@ -207,7 +200,7 @@ public class LOVRepository extends AbstractOntologyRepository {
     public Set<Ontology> getOntologyQueryMatch(AbstractQuery query) {
         Set<Ontology> queryMatch = new HashSet<>();
         String sparql = "SELECT DISTINCT ?g WHERE { GRAPH ?g { ?uri a ?termType . OPTIONAL { " + this.getQueryMatchConstraint("?uri", "?value") + " } " + query.getQueryFilterString( "<http://jena.hpl.hp.com/ARQ/function#localname>(?uri)", "?value") + "  FILTER (isuri(?uri)) . VALUES ?termType " + AbstractOntologyRepository.getAllTypesValuesString() + " . } }";
-        List<BindingSet> uriMatches = this.getConnector().selectQuery(sparql);
+        List<BindingSet> uriMatches = this.getConnector().selectQuery(sparql, true);
         for (BindingSet uriMatch : uriMatches) {
             Ontology matchedOntology = new Ontology(uriMatch.getBinding("g").getValue().stringValue());
             queryMatch.add(matchedOntology);
@@ -220,7 +213,7 @@ public class LOVRepository extends AbstractOntologyRepository {
         Set<String> matchingLabels = new HashSet<>();
 //        String sparql = "SELECT DISTINCT ?label WHERE { GRAPH <" + term.getOntologyUriOfTerm() + "> { " + getQueryMatchConstraint("<" + term.getTermUri() + ">",  "?label") + " } " + query.getQueryFilterString("?label") + " }";
         String sparql = "SELECT DISTINCT (str(?label) as ?str_label) WHERE { GRAPH <" + term.getOntologyUriOfTerm() + "> { { BIND(<http://jena.hpl.hp.com/ARQ/function#localname>(<"+term.getTermUri()+">) AS ?label) . } UNION { " + getQueryMatchConstraint("<" + term.getTermUri() + ">",  "?label") + " } } "+ query.getQueryFilterString("?label") + " }";
-        List<BindingSet> matchedLabels = this.getConnector().selectQuery(sparql);
+        List<BindingSet> matchedLabels = this.getConnector().selectQuery(sparql, true);
         for (BindingSet matchedLabel : matchedLabels) {
             String label = matchedLabel.getBinding("str_label").getValue().stringValue();
             matchingLabels.add(label);
@@ -254,7 +247,7 @@ public class LOVRepository extends AbstractOntologyRepository {
     public Map<Term,Set<String>> getClassQueryMatchRDFSLabels(AbstractQuery query, Ontology ontology) {
         Map<Term,Set<String>> matchingClassLabels = new HashMap<>();
         String sparql = "SELECT DISTINCT ?uri (str(?classLabel) as ?str_classLabel) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?uri a ?classType . ?uri rdfs:label ?classLabel . "+ query.getQueryFilterString("?classLabel") + " FILTER (isuri(?uri)) . VALUES ?classType " + AbstractOntologyRepository.getTypeClassValuesString() + " . } }";
-        List<BindingSet> uriMatches = this.getConnector().selectQuery(sparql);
+        List<BindingSet> uriMatches = this.getConnector().selectQuery(sparql,true);
         for (BindingSet uriMatch : uriMatches) {
             Term matchedClass = new Term(uriMatch.getBinding("uri").getValue().stringValue());
             String matchedLabel = uriMatch.getBinding("str_classLabel").getValue().stringValue().toLowerCase();
@@ -270,7 +263,7 @@ public class LOVRepository extends AbstractOntologyRepository {
     public Map<Term,Set<String>> getPropertyQueryMatchRDFSLabels(AbstractQuery query, Ontology ontology) {
         Map<Term,Set<String>> matchingPropertyLabels = new HashMap<>();
         String sparql = "SELECT DISTINCT ?uri (str(?propertyLabel) as ?str_propertyLabel) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?uri a ?propertyType . ?uri rdfs:label ?propertyLabel . "+ query.getQueryFilterString("?propertyLabel") + " FILTER (isuri(?uri)) . VALUES ?propertyType " + AbstractOntologyRepository.getTypePropertyValuesString() + " . } }";
-        List<BindingSet> uriMatches = this.getConnector().selectQuery(sparql);
+        List<BindingSet> uriMatches = this.getConnector().selectQuery(sparql, true);
         for (BindingSet uriMatch : uriMatches) {
             Term matchedProperty = new Term(uriMatch.getBinding("uri").getValue().stringValue());
             String matchedLabel = uriMatch.getBinding("str_propertyLabel").getValue().stringValue().toLowerCase();
@@ -286,16 +279,16 @@ public class LOVRepository extends AbstractOntologyRepository {
     @Override
     public Set<Pair<Ontology, Ontology>> getOwlImports(AbstractQuery query, boolean bolImplicitImports) {
         Set<Pair<Ontology, Ontology>> importTriples = new HashSet<>();
-        String sparql = "SELECT DISTINCT ?importingOntology ?importedOntology WHERE { ?importingOntology owl:imports ?importedOntology . }";
+        String sparql = "SELECT DISTINCT ?importingOntology ?importedOntology WHERE { GRAPH ?g { ?importingOntology owl:imports ?importedOntology . } } ";
 
         if (query != null) {
             //@TODO add query match constraint with OR filter for a b c
-            sparql = "SELECT DISTINCT ?importingOntology ?importedOntology WHERE { ?importingOntology owl:imports ?importedOntology . { SELECT DISTINCT ?importedOntology WHERE { GRAPH ?importedOntology { ?a ?b ?c . " + query.getQueryFilterString("?a", "?b", "?c") + " } } } } ";
+            sparql = "SELECT DISTINCT ?importingOntology ?importedOntology WHERE { GRAPH ?g { ?importingOntology owl:imports ?importedOntology . { SELECT DISTINCT ?importedOntology WHERE { GRAPH ?importedOntology { ?a ?b ?c . " + query.getQueryFilterString("?a", "?b", "?c") + " } } } } } ";
         }
 
 //        String sparql = "SELECT DISTINCT ?importingOntology ?importedOntology WHERE { ?importingOntology owl:imports ?importedOntology . { SELECT DISTINCT ?importedOntology WHERE { GRAPH ?importedOntology { ?a ?b ?c . " + queryFilter + " } } } } ";
 
-        List<BindingSet> importResults = this.getConnector().selectQuery(sparql);
+        List<BindingSet> importResults = this.getConnector().selectQuery(sparql,true);
 
         for (BindingSet importResult : importResults) {
             String fromOntology = importResult.getValue("importingOntology").stringValue();
@@ -304,12 +297,12 @@ public class LOVRepository extends AbstractOntologyRepository {
         }
 
         int countExplicit = importTriples.size();
-        log.info(String.format("Count of explicit import statements: %s", importTriples.size()));
+        log.debug(String.format("Count of explicit import statements: %s", importTriples.size()));
 
         if (bolImplicitImports) {
             for (Ontology ontology : this.getAllOntologies()) {
                 String ontologyTermPrefix = LOVPrefixes.getInstance().getTermPrefixForOntologyPrefix(ontology.getOntologyPrefix());
-                String implicitImportsSparql = "SELECT DISTINCT ?a ?b ?c WHERE { Graph <" + ontology.getOntologyUri() + "> { ?a ?b ?c . filter ( ( isiri(?a) && !strstarts(str(?a), \"" + ontologyTermPrefix + "\") && !strstarts(str(?a), \"" + ontology.getOntologyUri() + "\") && !strstarts(str(?a), \"http://www.w3.org/1999/02/22-rdf-syntax-ns\") && !strstarts(str(?a), \"http://www.w3.org/2000/01/rdf-schema\") && !strstarts(str(?a), \"http://www.w3.org/2002/07/owl\") && !strstarts(str(?a), \"http://www.w3.org/2001/XMLSchema\") ) || ( isiri(?b) && !strstarts(str(?b), \"" + ontologyTermPrefix + "\") && !strstarts(str(?b), \"" + ontology.getOntologyUri() + "\") && !strstarts(str(?b), \"http://www.w3.org/1999/02/22-rdf-syntax-ns\") && !strstarts(str(?b), \"http://www.w3.org/2000/01/rdf-schema\") && !strstarts(str(?b), \"http://www.w3.org/2002/07/owl\")  && !strstarts(str(?b), \"http://www.w3.org/2001/XMLSchema\") ) || ( isiri(?c) && !strstarts(str(?c), \"" + ontologyTermPrefix + "\") && !strstarts(str(?c), \"" + ontology.getOntologyUri() + "\") && !strstarts(str(?c), \"http://www.w3.org/1999/02/22-rdf-syntax-ns\") && !strstarts(str(?c), \"http://www.w3.org/2000/01/rdf-schema\") && !strstarts(str(?c), \"http://www.w3.org/2002/07/owl\") && !strstarts(str(?c), \"http://www.w3.org/2001/XMLSchema\") ) ) . } }";
+                String implicitImportsSparql = "SELECT DISTINCT ?a ?b ?c WHERE { Graph <" + ontology.getOntologyUri() + "> { ?a ?b ?c . filter( isURI(?a) && isURI(?b) && isURI(?c) ) . filter( (!strstarts(str(?a), \"" + ontologyTermPrefix + "\") && !strstarts(str(?a), \"" + ontology.getOntologyUri() + "\") && !strstarts(str(?a), \"http://www.w3.org/1999/02/22-rdf-syntax-ns\") && !strstarts(str(?a), \"http://www.w3.org/2000/01/rdf-schema\") && !strstarts(str(?a), \"http://www.w3.org/2002/07/owl\") && !strstarts(str(?a), \"http://www.w3.org/2001/XMLSchema\") ) || ( !strstarts(str(?b), \"" + ontologyTermPrefix + "\") && !strstarts(str(?b), \"" + ontology.getOntologyUri() + "\") && !strstarts(str(?b), \"http://www.w3.org/1999/02/22-rdf-syntax-ns\") && !strstarts(str(?b), \"http://www.w3.org/2000/01/rdf-schema\") && !strstarts(str(?b), \"http://www.w3.org/2002/07/owl\")  && !strstarts(str(?b), \"http://www.w3.org/2001/XMLSchema\") ) || ( !strstarts(str(?c), \"" + ontologyTermPrefix + "\") && !strstarts(str(?c), \"" + ontology.getOntologyUri() + "\") && !strstarts(str(?c), \"http://www.w3.org/1999/02/22-rdf-syntax-ns\") && !strstarts(str(?c), \"http://www.w3.org/2000/01/rdf-schema\") && !strstarts(str(?c), \"http://www.w3.org/2002/07/owl\") && !strstarts(str(?c), \"http://www.w3.org/2001/XMLSchema\") ) ) . } }";
                 List<BindingSet> implicitImports = this.getConnector().selectQuery(implicitImportsSparql);
                 if (implicitImports != null && !implicitImports.isEmpty()) {
                     for (BindingSet implicitImport : implicitImports) {
@@ -337,7 +330,7 @@ public class LOVRepository extends AbstractOntologyRepository {
                     }
                 }
             }
-            log.info(String.format("Count of implicit import statements: %s", importTriples.size()-countExplicit));
+            log.debug(String.format("Count of implicit import statements: %s", importTriples.size()-countExplicit));
         }
 
         return importTriples;
@@ -357,7 +350,7 @@ public class LOVRepository extends AbstractOntologyRepository {
     public int maximumFrequency(Ontology ontology) {
 //        String sparql = "SELECT (max(?termFrequencies) as ?maximumFrequency) WHERE { SELECT ?uri (COUNT(*) as ?termFrequencies) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?a ?b ?c . { SELECT DISTINCT ?uri WHERE { GRAPH <"+ontology.getOntologyUri() +"> { ?uri a ?type . } VALUES ?type { rdf:Property rdfs:Property owl:DatatypeProperty owl:ObjectProperty rdfs:Class owl:Class } } } filter(regex(str(?a), CONCAT(\"^\",str(?uri),\"$\")) || regex(str(?b), CONCAT(\"^\",str(?uri),\"$\")) || regex(str(?c), CONCAT(\"^\",str(?uri),\"$\"))) . } } group by ?uri }";
         String sparql = "SELECT (max(?termFrequencies) as ?maximumFrequency) WHERE { SELECT ?uri (COUNT(*) as ?termFrequencies) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?a ?b ?c . { SELECT DISTINCT ?uri WHERE { GRAPH <"+ontology.getOntologyUri() +"> { ?uri a ?type . } VALUES ?type " + AbstractOntologyRepository.getAllTypesValuesString() + " } } filter(?a=?uri || ?b=?uri || ?c=?uri) . } } group by ?uri }";
-        return Integer.parseInt(this.getConnector().selectQuery(sparql).get(0).getBinding("maximumFrequency").getValue().stringValue());
+        return Integer.parseInt(this.getConnector().selectQuery(sparql, true).get(0).getBinding("maximumFrequency").getValue().stringValue());
     }
 
     @Override
@@ -452,8 +445,8 @@ public class LOVRepository extends AbstractOntologyRepository {
 
     @Override
     public int countSubClasses(Term term, Ontology ontology) {
-        String sparql = "SELECT (count(distinct ?subClass) as ?countSubClass) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?subClass rdfs:subClassOf+ <"+term.getTermUri()+">  . } }";
-        return Integer.parseInt(this.getConnector().selectQuery(sparql).get(0).getBinding("countSubClass").getValue().stringValue());
+        String sparql = "SELECT (count(distinct ?subClass) as ?countSubClass) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?subClass a ?classType . ?subClass rdfs:subClassOf+ <"+term.getTermUri()+">  . } VALUES ?classType " + AbstractOntologyRepository.getTypeClassValuesString() + " . }";
+        return Integer.parseInt(this.getConnector().selectQuery(sparql,true).get(0).getBinding("countSubClass").getValue().stringValue());
     }
 
     @Override
@@ -463,7 +456,7 @@ public class LOVRepository extends AbstractOntologyRepository {
         // If it is a term query with a filter that does not correspond to a class, then there are no class matches! => skip query
         if (!(query instanceof TermQuery && ( ((TermQuery) query).getFilterTypes() != null && !((TermQuery) query).getFilterTypes().equals(TypeFilter.CLASS)) )) {
             String sparql = "SELECT (sum(?countSubClass) as ?countSubClassSum) WHERE { SELECT ?class (count(distinct ?subClass) as ?countSubClass) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?class a ?classType . ?subClass rdfs:subClassOf+ ?class . " + this.getQueryMatchConstraint("?class", "?label") + " } VALUES ?classType " + AbstractOntologyRepository.getTypeClassValuesString() + " . " + query.getQueryFilterString("?label", "<http://jena.hpl.hp.com/ARQ/function#localname>(?class)") + " } group by ?class }";
-            countSubClasses = Integer.parseInt(this.getConnector().selectQuery(sparql).get(0).getBinding("countSubClassSum").getValue().stringValue());
+            countSubClasses = Integer.parseInt(this.getConnector().selectQuery(sparql,true).get(0).getBinding("countSubClassSum").getValue().stringValue());
         }
         log.debug(String.format("Total count of sub classes for query %s in ontology %s: %s", query.toString(), ontology.getOntologyUri(), countSubClasses));
         return countSubClasses;
@@ -472,8 +465,8 @@ public class LOVRepository extends AbstractOntologyRepository {
 
     @Override
     public int countSuperClasses(Term term, Ontology ontology) {
-        String sparql = "SELECT (count(distinct ?superClass) as ?countSuperClass) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { <"+term.getTermUri()+"> rdfs:subClassOf+ ?superClass . } }";
-        return Integer.parseInt(this.getConnector().selectQuery(sparql).get(0).getBinding("countSuperClass").getValue().stringValue());
+        String sparql = "SELECT (count(distinct ?superClass) as ?countSuperClass) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?superClass a ?classType . <"+term.getTermUri()+"> rdfs:subClassOf+ ?superClass . } VALUES ?classType " + AbstractOntologyRepository.getTypeClassValuesString() + " . }";
+        return Integer.parseInt(this.getConnector().selectQuery(sparql,true).get(0).getBinding("countSuperClass").getValue().stringValue());
     }
 
     @Override
@@ -483,7 +476,7 @@ public class LOVRepository extends AbstractOntologyRepository {
         // If it is a term query with a filter that does not correspond to a class, then there are no class matches! => skip query
         if (!(query instanceof TermQuery && ( ((TermQuery) query).getFilterTypes() != null && !((TermQuery) query).getFilterTypes().equals(TypeFilter.CLASS)) )) {
             String sparql = "SELECT (sum(?countSuperClass) as ?countSuperClassSum) WHERE { SELECT ?class (count(distinct ?superClass) as ?countSuperClass) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?class a ?classType . ?class rdfs:subClassOf+ ?superClass . " + this.getQueryMatchConstraint("?class", "?label") + " } VALUES ?classType " + AbstractOntologyRepository.getTypeClassValuesString() + " . " + query.getQueryFilterString("?label", "<http://jena.hpl.hp.com/ARQ/function#localname>(?class)") + " } group by ?class }";
-            countSuperClasses = Integer.parseInt(this.getConnector().selectQuery(sparql).get(0).getBinding("countSuperClassSum").getValue().stringValue());
+            countSuperClasses = Integer.parseInt(this.getConnector().selectQuery(sparql,true).get(0).getBinding("countSuperClassSum").getValue().stringValue());
         }
         log.debug(String.format("Total count of super classes for query %s in ontology %s: %s", query.toString(), ontology.getOntologyUri(), countSuperClasses));
         return countSuperClasses;
@@ -493,7 +486,7 @@ public class LOVRepository extends AbstractOntologyRepository {
     @Override
     public int countRelations(Term term, Ontology ontology) {
         String sparql = "SELECT distinct (count(distinct ?classRelation) as ?countClassRelations)  WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?classRelation a ?propertyType . ?classRelation rdf:domain|rdfs:domain|<http://schema.org/domainIncludes> <"+term.getTermUri()+"> . } VALUES ?propertyType " + AbstractOntologyRepository.getTypePropertyValuesString() + " . }";
-        return Integer.parseInt(this.getConnector().selectQuery(sparql).get(0).getBinding("countClassRelations").getValue().stringValue());
+        return Integer.parseInt(this.getConnector().selectQuery(sparql, true).get(0).getBinding("countClassRelations").getValue().stringValue());
     }
 
     @Override
@@ -503,7 +496,7 @@ public class LOVRepository extends AbstractOntologyRepository {
         if (!(query instanceof TermQuery && ( ((TermQuery) query).getFilterTypes() != null && !((TermQuery) query).getFilterTypes().equals(TypeFilter.CLASS)) )) {
 //            String sparql = "SELECT (sum(?countRelations) as ?countRelationsSum) WHERE { SELECT ?class (count(distinct ?relation) as ?countRelation) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?class a ?classType . ?class ?relation ?anotherClass . " + this.getQueryMatchConstraint("?class", "?label") + " } VALUES ?classType " + AbstractRepository.getTypeClassValuesString() + " . " + query.getQueryFilterString("?class") + " } group by ?class }";
             String sparql = "select (sum(?countClassRelations) as ?countClassRelationsSum) WHERE { SELECT ?class (count(distinct ?classRelation) as ?countClassRelations) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?class a ?classType . ?classRelation a ?propertyType . ?class rdfs:subClassOf* ?superClass . ?classRelation rdf:domain|rdfs:domain|<http://schema.org/domainIncludes> ?superClass . " + this.getQueryMatchConstraint("?class", "?label") + " } VALUES ?classType " + AbstractOntologyRepository.getTypeClassValuesString() + " VALUES ?propertyType " + AbstractOntologyRepository.getTypePropertyValuesString() + " . " + query.getQueryFilterString("?label", "<http://jena.hpl.hp.com/ARQ/function#localname>(?class)") + " } group by ?class } ";
-            countRelations = Integer.parseInt(this.getConnector().selectQuery(sparql).get(0).getBinding("countClassRelationsSum").getValue().stringValue());
+            countRelations = Integer.parseInt(this.getConnector().selectQuery(sparql,true).get(0).getBinding("countClassRelationsSum").getValue().stringValue());
         }
         log.debug(String.format("Count of class relations for query %s in ontology %s: %s", query, ontology.getOntologyUri(), countRelations));
         return countRelations;
@@ -512,8 +505,8 @@ public class LOVRepository extends AbstractOntologyRepository {
 
     @Override
     public int countSiblings(Term term, Ontology ontology) {
-        String sparql = "SELECT (count(distinct ?siblingClasses) as ?countClassSiblings) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { <"+term.getTermUri()+"> rdfs:subClassOf ?superClass . ?siblingClasses rdfs:subClassOf ?superClass . } FILTER ( ?superClass not in ( owl:Thing )) }";
-        return Integer.parseInt(this.getConnector().selectQuery(sparql).get(0).getBinding("countClassSiblings").getValue().stringValue());
+        String sparql = "SELECT (count(distinct ?siblingClasses) as ?countClassSiblings) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { <"+term.getTermUri()+"> rdfs:subClassOf ?superClass . ?siblingClasses rdfs:subClassOf ?superClass . ?siblingClasses a ?classType . } VALUES ?classType " + AbstractOntologyRepository.getTypeClassValuesString() + " . FILTER ( ?superClass not in ( owl:Thing )) }";
+        return Integer.parseInt(this.getConnector().selectQuery(sparql,true).get(0).getBinding("countClassSiblings").getValue().stringValue());
     }
 
     @Override
@@ -530,20 +523,20 @@ public class LOVRepository extends AbstractOntologyRepository {
 
     @Override
     public int countSubProperties(Term term, Ontology ontology) {
-        String sparql = "SELECT (count(distinct ?subproperty) as ?count_subproperties) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?subproperty rdfs:subPropertyOf+ <"+term.getTermUri()+">  .  } }";
-        return Integer.parseInt(this.getConnector().selectQuery(sparql).get(0).getBinding("count_subproperties").getValue().stringValue());
+        String sparql = "SELECT (count(distinct ?subproperty) as ?count_subproperties) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { ?subproperty rdfs:subPropertyOf+ <"+term.getTermUri()+">  . ?subproperty a ?propertyType . } VALUES ?propertyType " + AbstractOntologyRepository.getTypePropertyValuesString() + " . }";
+        return Integer.parseInt(this.getConnector().selectQuery(sparql, true).get(0).getBinding("count_subproperties").getValue().stringValue());
     }
 
     @Override
     public int countSuperProperties(Term term, Ontology ontology) {
-        String sparql = "SELECT (count(distinct ?superproperty) as ?count_superproperties) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { <"+term.getTermUri()+"> rdfs:subPropertyOf+ ?superproperty  .  } }";
-        return Integer.parseInt(this.getConnector().selectQuery(sparql).get(0).getBinding("count_superproperties").getValue().stringValue());
+        String sparql = "SELECT (count(distinct ?superproperty) as ?count_superproperties) WHERE { GRAPH <"+ontology.getOntologyUri()+"> { <"+term.getTermUri()+"> rdfs:subPropertyOf+ ?superproperty  . ?superproperty a ?propertyType . } VALUES ?propertyType " + AbstractOntologyRepository.getTypePropertyValuesString() + " . }";
+        return Integer.parseInt(this.getConnector().selectQuery(sparql, true).get(0).getBinding("count_superproperties").getValue().stringValue());
     }
 
     @Override
     public int getShortestPathLength(Term classQueryMatchStart, Term classQueryMatchEnd) {
         String sparql = "paths shortest start ?x = <"+classQueryMatchStart.getTermUri()+"> END ?y = <"+classQueryMatchEnd.getTermUri()+"> via { {?x ?p ?y} UNION {?y ?p ?x} filter (?y not in (rdfs:Class, owl:Class)) }";
-        List<BindingSet> shortestPaths = this.getConnector().selectQuery(sparql);
+        List<BindingSet> shortestPaths = this.getConnector().selectQuery(sparql,true);
         // multiple path are separated by an empty row
         int shortestPathLength = 0;
         if (shortestPaths != null) {
@@ -554,7 +547,7 @@ public class LOVRepository extends AbstractOntologyRepository {
                 shortestPathLength++;
             }
         }
-        log.info(String.format("Shortest path for start term: %s and end term %s: %s", classQueryMatchStart.getTermUri(), classQueryMatchEnd.getTermUri(), shortestPathLength));
+        log.debug(String.format("Shortest path for start term: %s and end term %s: %s", classQueryMatchStart.getTermUri(), classQueryMatchEnd.getTermUri(), shortestPathLength));
         return shortestPathLength;
     }
 
@@ -563,9 +556,9 @@ public class LOVRepository extends AbstractOntologyRepository {
         List<Triple<Term, Term, Term>> tripleList = new ArrayList<>();
 
 //        String sparql = "Select distinct ?subject ?predicate ?object where { graph <" + ontology.getOntologyUri() + "> { ?subject ?predicate ?object } } ";
-        String sparql = "SELECT distinct ?subject_all ?predicate ?object_all WHERE { GRAPH <" + ontology.getOntologyUri() + "> { ?predicate a ?propertyType . OPTIONAL { ?predicate rdfs:domain|<http://schema.org/domainIncludes> ?subject } . bind(if(bound(?subject), ?subject, :source) as ?subject_all ) . OPTIONAL { ?predicate rdfs:range|<http://schema.org/rangeIncludes> ?object } . bind(if(bound(?object), ?object, :sink) as ?object_all ) . } VALUES ?propertyType "+ AbstractOntologyRepository.getTypePropertyValuesString() + " . }";
+        String sparql = "SELECT distinct ?subject_all ?predicate ?object_all WHERE { GRAPH <" + ontology.getOntologyUri() + "> { ?predicate a ?propertyType . OPTIONAL { ?predicate rdfs:domain|<http://schema.org/domainIncludes> ?subject } . bind(if(bound(?subject), ?subject, <http://lovbench.com/placeholder#source>) as ?subject_all ) . OPTIONAL { ?predicate rdfs:range|<http://schema.org/rangeIncludes> ?object } . bind(if(bound(?object), ?object, <http://lovbench.com/placeholder#sink>) as ?object_all ) . } VALUES ?propertyType "+ AbstractOntologyRepository.getTypePropertyValuesString() + " . }";// FILTER (isURI(?subject_all) && isURI(?object_all) && isURI(?predicate)). }";
 
-        List<BindingSet> triples = this.getConnector().selectQuery(sparql);
+        List<BindingSet> triples = this.getConnector().selectQuery(sparql,true);
 
         for (BindingSet triple : triples) {
             String bindingSubject = "subject_all";
@@ -597,35 +590,23 @@ public class LOVRepository extends AbstractOntologyRepository {
     }
 
     @Override
-    public Map<Ontology, Set<Term>> getAllTerms() {
-        Map<Ontology, Set<Term>> allTerms = new HashMap<>();
-
-        for (Ontology ontology : this.getAllOntologies()) {
-            String sparql = "SELECT distinct ?term WHERE { GRAPH <" + ontology.getOntologyUri() + "> { ?term a ?termType . } VALUES ?termType " + AbstractOntologyRepository.getAllTypesValuesString() + " . filter (strstarts(str(?term), \"" + ontology.getOntologyTermPrefix() + "\")) . }";
-            if (!ontology.getOntologyAlternativeTermPrefix().isEmpty()) {
-                sparql = "SELECT distinct ?term WHERE { GRAPH <" + ontology.getOntologyUri() + "> { ?term a ?termType . } VALUES ?termType " + AbstractOntologyRepository.getAllTypesValuesString() + " . filter (strstarts(str(?term), \"" + ontology.getOntologyTermPrefix() + "\") || strstarts(str(?term), \"" + ontology.getOntologyAlternativeTermPrefix() + "\")) . }";
-            }
-            List<BindingSet> termResults = this.getConnector().selectQuery(sparql);
-            for (BindingSet termResult : termResults) {
-                if (!allTerms.containsKey(ontology)) {
-                    allTerms.put(ontology, new HashSet<>());
-                }
-                allTerms.get(ontology).add(new Term(termResult.getBinding("term").getValue().stringValue()));
-            }
-        }
-
-        return allTerms;
-    }
-
-    @Override
-    public Set<Term> getAllTerms(Ontology ontology) {
+    public Set<Term> getAllTerms(Ontology ontology, TermType termType) {
         Set<Term> allTerms = new HashSet<>();
 
-        String sparql = "SELECT distinct ?term WHERE { GRAPH <" + ontology.getOntologyUri() + "> { ?term a ?termType . } VALUES ?termType " + AbstractOntologyRepository.getAllTypesValuesString() + " . filter (strstarts(str(?term), \"" + ontology.getOntologyTermPrefix() + "\")) . }";
-        if (!ontology.getOntologyAlternativeTermPrefix().isEmpty()) {
-            sparql = "SELECT distinct ?term WHERE { GRAPH <" + ontology.getOntologyUri() + "> { ?term a ?termType . } VALUES ?termType " + AbstractOntologyRepository.getAllTypesValuesString() + " . filter (strstarts(str(?term), \"" + ontology.getOntologyTermPrefix() + "\") || strstarts(str(?term), \"" + ontology.getOntologyAlternativeTermPrefix() + "\")) . }";
-        }
+//        String sparql = "SELECT distinct ?term WHERE { GRAPH <" + ontology.getOntologyUri() + "> { ?term a ?termType . } VALUES ?termType " + AbstractOntologyRepository.getAllTypesValuesString() + " . filter (strstarts(str(?term), \"" + ontology.getOntologyTermPrefix() + "\")) . }";
+//
+//        if (!ontology.getOntologyAlternativeTermPrefix().isEmpty()) {
+//            sparql = "SELECT distinct ?term WHERE { GRAPH <" + ontology.getOntologyUri() + "> { ?term a ?termType . } VALUES ?termType " + AbstractOntologyRepository.getAllTypesValuesString() + " . filter (strstarts(str(?term), \"" + ontology.getOntologyTermPrefix() + "\") || strstarts(str(?term), \"" + ontology.getOntologyAlternativeTermPrefix() + "\")) . }";
+//        }
+
+        String sparql = "SELECT distinct ?term WHERE { GRAPH <" + ontology.getOntologyUri() + "> { ?term a ?termType . } VALUES ?termType " + this.getValueTypesForTermType(termType) + " . " + this.getOntologyTermPrefixURIFilter(ontology, "term") + " }";
+
         List<BindingSet> termResults = this.getConnector().selectQuery(sparql);
+
+        if (termResults.isEmpty()) {
+            log.warn("We found an empty ontology: " + ontology.getOntologyUri() + " - potential reasons: wrong prefix defined, contains no URIs, only contains instances but no classes/properties, only contains constraints, alignments, or it's simply empty.");
+            log.warn("The corresponding query: " + sparql);
+        }
 
         for (BindingSet termResult : termResults) {
             Term term = new Term(termResult.getBinding("term").getValue().stringValue());
@@ -635,5 +616,61 @@ public class LOVRepository extends AbstractOntologyRepository {
         }
 
         return allTerms;
+    }
+
+    @Override
+    public int getPropertyCount(Ontology ontology) {
+        return Integer.parseInt(this.getConnector().selectQuery(
+                "SELECT (COUNT(distinct ?prop) as ?propCnt) WHERE { GRAPH  <"+ontology.getOntologyUri()+"> { " +
+                        "?prop a ?propType . } VALUES ?propType " + AbstractOntologyRepository.getTypePropertyValuesString() + " . " + this.getOntologyTermPrefixURIFilter(ontology, "prop") + " } " ).get(0).getBinding("propCnt").getValue().stringValue());
+    }
+
+    @Override
+    public int getClassCount(Ontology ontology) {
+        return Integer.parseInt(this.getConnector().selectQuery(
+                "SELECT (COUNT(distinct ?class) as ?classCnt) WHERE { GRAPH  <"+ontology.getOntologyUri()+"> { " +
+                        "?class a ?classType . } VALUES ?classType " + AbstractOntologyRepository.getTypeClassValuesString() + " . " + this.getOntologyTermPrefixURIFilter(ontology, "class") + " } " ).get(0).getBinding("classCnt").getValue().stringValue());
+    }
+
+    @Override
+    public int countAppearanceOfTermPrefix(String vocabURI, String termPrefix) {
+        String sparql = "SELECT (COUNT(distinct ?term) as ?cnt) { GRAPH <"+vocabURI+"> { ?term a ?termType . } VALUES ?termType " + AbstractOntologyRepository.getAllTypesValuesString() + " .  FILTER ( STRSTARTS(STR(?term), STR(\""+termPrefix+"\")) && !CONTAINS(STRAFTER(STR(?term),STR(\""+termPrefix+"\")),\"/\") && !CONTAINS(STRAFTER(STR(?term),STR(\""+termPrefix+"\")),\"#\") ) } ";
+        return Integer.parseInt(this.getConnector().selectQuery(sparql).get(0).getBinding("cnt").getValue().stringValue());
+    }
+
+    @Override
+    public Set<Resource> getAllURIs(String vocabURI) {
+        String sparql = "SELECT distinct ?term { GRAPH <"+vocabURI+"> { ?term a ?type . FILTER(isURI(?term)) . } } ";
+        List<BindingSet> termResults = this.getConnector().selectQuery(sparql);
+
+        Set<Resource> allTerms = new HashSet<>();
+        for (BindingSet termResult : termResults) {
+            Resource term = ResourceFactory.createResource(termResult.getBinding("term").getValue().stringValue());
+            if (!allTerms.contains(term)) {
+                allTerms.add(term);
+            }
+        }
+
+        return allTerms;
+    }
+
+    private String getOntologyTermPrefixURIFilter(Ontology ontology, String binding) {
+        String filter = "filter (isURI(?"+binding+")) .";
+        if (ontology.getOntologyTermPrefix() != null && !ontology.getOntologyTermPrefix().isEmpty()) {
+            filter = "filter (strstarts(str(?"+binding+"), \"" + ontology.getOntologyTermPrefix() + "\") && isURI(?"+binding+")) .";
+            if (ontology.getOntologyAlternativeTermPrefix() != null && !ontology.getOntologyAlternativeTermPrefix().isEmpty()) {
+                filter = "filter (strstarts(str(?"+binding+"), \"" + ontology.getOntologyTermPrefix() + "\") || strstarts(str(?"+binding+"), \"" + ontology.getOntologyAlternativeTermPrefix() + "\") && isURI(?"+binding+") ) . ";
+            }
+        }
+        return filter;
+    }
+
+    private String getValueTypesForTermType(TermType termType) {
+        String typeValues = AbstractOntologyRepository.getAllTypesValuesString();
+        switch (termType) {
+            case CLASS: typeValues = AbstractOntologyRepository.getTypeClassValuesString(); break;
+            case PROPERTY: typeValues = AbstractOntologyRepository.getTypePropertyValuesString(); break;
+        }
+        return typeValues;
     }
 }
