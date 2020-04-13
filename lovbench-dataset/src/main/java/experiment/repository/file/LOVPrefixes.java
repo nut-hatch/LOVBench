@@ -1,7 +1,13 @@
 package experiment.repository.file;
 
+import experiment.configuration.ExperimentConfiguration;
+import experiment.configuration.IncorrectConfigurationException;
+import experiment.model.Ontology;
 import experiment.model.Prefix;
 import experiment.model.Term;
+import experiment.repository.triplestore.AbstractOntologyMetadataRepository;
+import experiment.repository.triplestore.LOVMetadataRepository;
+import experiment.repository.triplestore.connector.JenaConnector;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -15,7 +21,6 @@ import java.util.Set;
 
 /**
  * Class that is responsible to resolve mismatches of term and ontology URIs in the LOV collection
- *
  */
 public class LOVPrefixes {
 
@@ -27,22 +32,33 @@ public class LOVPrefixes {
     /**
      * Map from ontology prefixes to complete Prefix object.
      */
-    public Map<String,Prefix> ontologyprefix2prefixes;
+    public Map<String, Prefix> ontologyprefix2prefixes;
 
     /**
      * Maps from ontology URIs to complete Prefix object.
      */
-    public Map<String,Prefix> ontologyUri2prefixes;
+    public Map<String, Prefix> ontologyUri2prefixes;
 
     private Set<String> alternativePrefixes;
 
-    private static final Logger log = LoggerFactory.getLogger( LOVPrefixes.class );
+    private String sparqlPrefixString;
+
+    private static final Logger log = LoggerFactory.getLogger(LOVPrefixes.class);
 
     /**
      * Parses the LOV prefix file into Prefix objects.
      */
-    private LOVPrefixes() {
-        String filename = ExperimentConfiguration.getInstance().getLovPrefixesFile();
+    private LOVPrefixes() throws IncorrectConfigurationException {
+        if (ExperimentConfiguration.getInstance().getLovNqFile() != null) {
+            this.initFromVoafGraph(ExperimentConfiguration.getInstance().getLovNqFile());
+        } else if (ExperimentConfiguration.getInstance().getLovPrefixesFile() != null) {
+            this.initFromPrefixFile(ExperimentConfiguration.getInstance().getLovPrefixesFile());
+        } else {
+            throw new IncorrectConfigurationException("Prefix object needs to be initialized, either by providing a prefix file (see LOVprefixes.initFromPrefixFile()) or by providing a nq dump that includes a VOAF graph (see LOVPrefixes.initFromVoafGraph())");
+        }
+    }
+
+    private void initFromPrefixFile(String filename) {
         this.ontologyprefix2prefixes = new HashMap<>();
         this.ontologyUri2prefixes = new HashMap<>();
         this.alternativePrefixes = new HashSet<>();
@@ -72,6 +88,23 @@ public class LOVPrefixes {
         }
     }
 
+    private void initFromVoafGraph(String nqFile) {
+        this.ontologyprefix2prefixes = new HashMap<>();
+        this.ontologyUri2prefixes = new HashMap<>();
+        this.alternativePrefixes = new HashSet<>();
+
+        AbstractOntologyMetadataRepository metadataRepository = ExperimentConfiguration.getInstance().getRepositoryMetadata();
+        metadataRepository.setConnector(new JenaConnector(nqFile));
+        Set<Prefix> prefixes = metadataRepository.getAllVocabPrefixes();
+        for (Prefix prefix : prefixes) {
+            this.ontologyprefix2prefixes.put(prefix.getOntologyPrefix(), prefix);
+            this.ontologyUri2prefixes.put(prefix.getOntologyUri(), prefix);
+            if (prefix.getAlternativeTermPrefix() != null && !prefix.getAlternativeTermPrefix().equals("")) {
+                this.alternativePrefixes.add(prefix.getAlternativeTermPrefix());
+            }
+        }
+    }
+
     /**
      * Gets singleton instance.
      *
@@ -79,7 +112,11 @@ public class LOVPrefixes {
      */
     public static LOVPrefixes getInstance() {
         if (LOVPrefixesInstance == null) {
-            LOVPrefixesInstance = new LOVPrefixes();
+            try {
+                LOVPrefixesInstance = new LOVPrefixes();
+            } catch (IncorrectConfigurationException e) {
+                log.error(e.getMessage());
+            }
         }
         return LOVPrefixesInstance;
     }
@@ -101,9 +138,7 @@ public class LOVPrefixes {
             log.debug(String.format("Term uri %s already a full uri!", termUri));
             return termUri;
         }
-        log.info("!!!!!!!!!!!!!!");
-        log.info(termUri);
-        String[] termParts = termUri.split(":",2);
+        String[] termParts = termUri.split(":", 2);
         String ontologyPrefix = termParts[0];
         String termString = termParts[1];
         String termPrefix = this.getTermPrefixForOntologyPrefix(ontologyPrefix);
@@ -167,16 +202,21 @@ public class LOVPrefixes {
      * @return String
      */
     public String getOntologyPrefix(String ontologyUri) {
-        log.info(ontologyUri);
-        return this.ontologyUri2prefixes.get(ontologyUri).getOntologyPrefix();
+        if (this.ontologyUri2prefixes.containsKey(ontologyUri)) {
+            return this.ontologyUri2prefixes.get(ontologyUri).getOntologyPrefix();
+        } else {
+            return ontologyUri;
+        }
     }
 
     /**
      * Returns ontology URI based on ontology prefix.
+     *
      * @param ontologyPrefix
      * @return
      */
     public String getOntologyUri(String ontologyPrefix) {
+        System.out.println(ontologyPrefix);
         return this.ontologyprefix2prefixes.get(ontologyPrefix).getOntologyUri();
     }
 
@@ -194,7 +234,7 @@ public class LOVPrefixes {
         String ontologyUri = "";
         for (Map.Entry<String, Prefix> ontologyUri2prefix : this.ontologyUri2prefixes.entrySet()) {
             if ((termUri.startsWith(ontologyUri2prefix.getValue().getTermPrefix()) || (!ontologyUri2prefix.getValue().getAlternativeTermPrefix().isEmpty() && termUri.startsWith(ontologyUri2prefix.getValue().getAlternativeTermPrefix())))
-                    && (ontologyUri.equals("") || ontologyUri2prefix.getKey().length()>ontologyUri.length())) {
+                    && (ontologyUri.equals("") || ontologyUri2prefix.getKey().length() > ontologyUri.length())) {
                 ontologyUri = ontologyUri2prefix.getKey();
             }
         }
@@ -202,7 +242,7 @@ public class LOVPrefixes {
             log.debug(String.format("No LOV ontology uri found for term uri %s. Extracting ontology URI as external ontology", termUri));
             int posSlash = termUri.lastIndexOf('/');
             int posHash = termUri.lastIndexOf('#');
-            ontologyUri = termUri.substring(0, Math.max(posSlash,posHash));
+            ontologyUri = termUri.substring(0, Math.max(posSlash, posHash));
         }
         log.debug(String.format("Ontology uri for %s is: %s", termUri, ontologyUri));
         return ontologyUri;
@@ -211,12 +251,23 @@ public class LOVPrefixes {
     public String getLocalName(String termUri) {
         int posSlash = termUri.lastIndexOf('/');
         int posHash = termUri.lastIndexOf('#');
-        String localname = termUri.substring(Math.max(posSlash,posHash)+1,termUri.length());
+        String localname = termUri.substring(Math.max(posSlash, posHash) + 1, termUri.length());
         return localname;
     }
 
     public String getFullUri(Term term) {
         return this.getFullUri(term.getTermUri());
+    }
+
+    public String getSparqlPrefixString() {
+        if (this.sparqlPrefixString == null) {
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String,Prefix> prefixEntry : this.ontologyprefix2prefixes.entrySet()) {
+                sb.append("PREFIX " + prefixEntry.getKey() + ": <" + prefixEntry.getValue().getTermPrefix() + ">\n");
+            }
+            this.sparqlPrefixString = sb.toString();
+        }
+        return this.sparqlPrefixString;
     }
 
 //    public String getPrefixUri(String uri) {
