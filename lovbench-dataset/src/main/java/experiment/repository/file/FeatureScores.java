@@ -1,9 +1,8 @@
 package experiment.repository.file;
 
 import com.opencsv.CSVWriter;
+import experiment.configuration.ExperimentConfiguration;
 import experiment.feature.extraction.AbstractFeature;
-import experiment.feature.extraction.ontology.AbstractOntologyFeature;
-import experiment.feature.extraction.term.AbstractTermFeature;
 import experiment.model.FeatureScore;
 import experiment.model.query.enums.ExtractionType;
 import org.slf4j.Logger;
