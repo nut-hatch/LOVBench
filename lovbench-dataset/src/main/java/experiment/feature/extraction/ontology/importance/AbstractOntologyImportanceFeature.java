@@ -19,7 +19,7 @@ public abstract class AbstractOntologyImportanceFeature extends AbstractOntology
     /**
      * Cache of scores for all ontologies.
      */
-    protected Map<Ontology, Double> scores = new HashMap<>();;
+    protected Map<Ontology, Double> scores = new HashMap<>();
 
     private static final Logger log = LoggerFactory.getLogger( AbstractOntologyImportanceFeature.class );
 
@@ -46,18 +46,10 @@ public abstract class AbstractOntologyImportanceFeature extends AbstractOntology
     public double getScore(Ontology ontology) {
         double score = 0.0;
 
-        if (this.scores == null) {
-            this.scores = new HashMap<>();
-            this.computeAllScores();
-        }
-
-        for (Map.Entry<Ontology, Double> entry : scores.entrySet()) {
-            log.debug(entry.getKey().toString() + ": " + entry.getValue());
-        }
-
         if (!(this.scores.isEmpty()) && (this.scores.containsKey(ontology))) {
             score = this.scores.get(ontology);
         }
+
         return score;
     }
 

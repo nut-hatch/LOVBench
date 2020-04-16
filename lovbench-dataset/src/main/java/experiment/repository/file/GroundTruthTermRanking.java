@@ -13,6 +13,9 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * Class that contains the ground truth for terms
@@ -46,7 +49,7 @@ public class GroundTruthTermRanking {
     public static GroundTruthTermRanking parse(String filename, int numberOfLines) {
         GroundTruthTermRanking groundTruthTable = new GroundTruthTermRanking();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+        try (BufferedReader br = Files.newBufferedReader(Paths.get(filename), Charset.defaultCharset())) {
             CSVReader csvReader = new CSVReader(br, CSVParser.DEFAULT_SEPARATOR,
                     CSVParser.DEFAULT_QUOTE_CHARACTER, 1);
             String[] arrLine;

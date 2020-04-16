@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -215,7 +216,7 @@ public class TFIDFScorer extends AbstractScorer {
      */
     public void readMaximumFrequenciesFromCsv() {
         if (new File(ExperimentConfiguration.getInstance().getMaximumFrequencyFile()).isFile()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(ExperimentConfiguration.getInstance().getMaximumFrequencyFile()))) {
+            try (BufferedReader br = Files.newBufferedReader(Paths.get(ExperimentConfiguration.getInstance().getMaximumFrequencyFile()), Charset.defaultCharset())) {
                 CSVReader csvReader = new CSVReader(br);
                 String[] arrLine;
                 while ((arrLine = csvReader.readNext()) != null) {
@@ -234,7 +235,7 @@ public class TFIDFScorer extends AbstractScorer {
 
     public void readTfFromCsv() {
         if (new File(ExperimentConfiguration.getInstance().getTfFile()).isFile()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(ExperimentConfiguration.getInstance().getTfFile()))) {
+            try (BufferedReader br = Files.newBufferedReader(Paths.get(ExperimentConfiguration.getInstance().getTfFile()), Charset.defaultCharset())) {
                 CSVReader csvReader = new CSVReader(br);
                 String[] arrLine;
                 while ((arrLine = csvReader.readNext()) != null) {
@@ -253,7 +254,7 @@ public class TFIDFScorer extends AbstractScorer {
 
     public void readIdfFromCsv() {
         if (new File(ExperimentConfiguration.getInstance().getIdfFile()).isFile()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(ExperimentConfiguration.getInstance().getIdfFile()))) {
+            try (BufferedReader br = Files.newBufferedReader(Paths.get(ExperimentConfiguration.getInstance().getIdfFile()), Charset.defaultCharset())) {
                 CSVReader csvReader = new CSVReader(br);
                 String[] arrLine;
                 while ((arrLine = csvReader.readNext()) != null) {

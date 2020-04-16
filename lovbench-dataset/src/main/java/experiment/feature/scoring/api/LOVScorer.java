@@ -243,7 +243,7 @@ public class LOVScorer extends AbstractScorer {
     public Map<TermQuery,Map<Term,Double>> readTermScores(String filename) {
         Map<TermQuery,Map<Term,Double>> scores = new HashMap<>();
         if (new File(filename).exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+            try (BufferedReader br = Files.newBufferedReader(Paths.get(filename), Charset.defaultCharset())) {
                 CSVReader csvReader = new CSVReader(br);
                 String[] arrLine;
                 while ((arrLine = csvReader.readNext()) != null) {
@@ -301,7 +301,7 @@ public class LOVScorer extends AbstractScorer {
     public Map<AbstractQuery,Map<Ontology,Double>> readOntologyScores(String filename) {
         Map<AbstractQuery,Map<Ontology,Double>> scores = new HashMap<>();
         if (new File(filename).exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+            try (BufferedReader br = Files.newBufferedReader(Paths.get(filename), Charset.defaultCharset())) {
                 CSVReader csvReader = new CSVReader(br);
                 String[] arrLine;
                 while ((arrLine = csvReader.readNext()) != null) {

@@ -236,7 +236,7 @@ public class LOVRepositoryTest {
         for (Term term : propertyMatches) {
             log.debug(term.getTermUri());
         }
-        assertEquals(79, classMatches.size());
+        assertEquals(79, propertyMatches.size());
 
         Set<Term> allMatches = this.repository.getTermQueryMatch(query, ontology);
         assertEquals(allMatches.size(),propertyMatches.size()+classMatches.size());

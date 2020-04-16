@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -126,7 +127,7 @@ public class VSMOntology extends AbstractOntologyRelevanceFeature {
     }
 
     private void readVsmFromCsv() {
-        try (BufferedReader br = new BufferedReader(new FileReader(ExperimentConfiguration.getInstance().getVsmFile()))) {
+        try (BufferedReader br = Files.newBufferedReader(Paths.get(ExperimentConfiguration.getInstance().getVsmFile()), Charset.defaultCharset())) {
             CSVReader csvReader = new CSVReader(br);
             String[] arrLine;
             while ((arrLine = csvReader.readNext()) != null) {

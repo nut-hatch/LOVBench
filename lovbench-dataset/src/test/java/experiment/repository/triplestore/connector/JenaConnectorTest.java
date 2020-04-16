@@ -32,7 +32,7 @@ public class JenaConnectorTest {
             graphCount++;
             tripleCount += connector.getDataset().getNamedModel(it.next()).size();
         }
-        System.out.println("Read " + tripleCount + " triples in " + graphCount + " graphs");
+        log.debug("Read " + tripleCount + " triples in " + graphCount + " graphs");
 
     }
 
@@ -48,7 +48,7 @@ public class JenaConnectorTest {
                 "  }" +
                 "  FILTER (isURI(?class))" +
                 " } }";
-        List<BindingSet> result = connector.selectQuery(selectQuery);
+        List<BindingSet> result = connector.selectQuery(selectQuery, true);
         log.debug(result.size()+"");
         assertNotEquals(0, result.size());
 

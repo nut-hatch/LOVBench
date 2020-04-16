@@ -43,10 +43,14 @@ public class ExperimentConfiguration {
 
     /**
      * File that contains the LOV prefixes to resolve query<->ontology matches.
+     * @deprecated better to provide a lovNqFile and allow automatic extraction
      */
 //    String lovPrefixesFile = inputDir + "LOV_Corpus/2019-08-06_lov_prefixes_edit.json";
     String lovPrefixesFile;
 
+    /**
+     * LOV dump
+     */
     String lovNqFile;
 
     /**
@@ -158,7 +162,12 @@ public class ExperimentConfiguration {
     /**
      * Indicates whether features should be tested on the entire nq file, which will take a looong time.
      */
-    boolean makeExtensiveTests = true;
+    boolean makeExtensiveTests = false;
+
+    /**
+     * Indicates whether tests that manipulate the elasticsearch index should be performed.
+     */
+    boolean makeElasticSearchTests = false;
 
     /**
      * The repository to access the ontology collection.
@@ -464,5 +473,13 @@ public class ExperimentConfiguration {
 
     public void setMakeExtensiveTests(boolean makeExtensiveTests) {
         this.makeExtensiveTests = makeExtensiveTests;
+    }
+
+    public boolean isMakeElasticSearchTests() {
+        return makeElasticSearchTests;
+    }
+
+    public void setMakeElasticSearchTests(boolean makeElasticSearchTests) {
+        this.makeElasticSearchTests = makeElasticSearchTests;
     }
 }

@@ -14,6 +14,9 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * Class that contains the ground truth for ontologies.
@@ -47,7 +50,7 @@ public class GroundTruthOntologyRanking {
     public static GroundTruthOntologyRanking parse(String filename, int numberOfLines) {
         GroundTruthOntologyRanking groundTruthTable = new GroundTruthOntologyRanking();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+        try (BufferedReader br = Files.newBufferedReader(Paths.get(filename), Charset.defaultCharset())) {
             CSVReader csvReader = new CSVReader(br);
             String[] arrLine;
             int i = 1;

@@ -57,14 +57,10 @@ public abstract class AbstractTermImportanceFeature extends AbstractTermFeature 
     public double getScore(Term term) {
         double score = 0.0;
 
-        if (this.scores == null) {
-            this.scores = new HashMap<>();
-            this.computeAllScores();
-        }
-
         if (!(this.scores.isEmpty()) && (this.scores.containsKey(term))) {
             score = this.scores.get(term);
         }
+
         return score;
     }
 

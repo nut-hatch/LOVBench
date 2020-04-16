@@ -1,12 +1,11 @@
 package export.elasticsearch.cli;
 
 import arq.cmdline.CmdGeneral;
+import experiment.feature.FeatureFactory;
+import experiment.feature.extraction.AbstractFeature;
 import experiment.feature.extraction.FeatureExtractorTerms;
-import experiment.feature.extraction.ontology.importance.PageRankVoaf;
-import experiment.feature.extraction.term.importance.*;
-import experiment.feature.scoring.TFIDFScorer;
-import experiment.feature.scoring.TermStatsScorer;
-import experiment.feature.scoring.graph.BetweennessScorer;
+import experiment.feature.extraction.ontology.AbstractOntologyFeature;
+import experiment.feature.extraction.term.AbstractTermFeature;
 import experiment.model.Term;
 import experiment.model.query.TermQuery;
 import experiment.configuration.ExperimentConfiguration;
@@ -14,7 +13,10 @@ import experiment.repository.file.FeatureSetScores;
 import experiment.repository.triplestore.AbstractOntologyMetadataRepository;
 import experiment.repository.triplestore.AbstractOntologyRepository;
 import experiment.repository.triplestore.connector.JenaConnector;
-import org.elasticsearch.index.mapper.SourceToParse;
+import export.elasticsearch.feature.FeatureRequestHelper;
+import export.elasticsearch.index.ElasticSearchIndex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -22,10 +24,13 @@ public class ExtractFeaturesElasticsearch extends CmdGeneral {
 
     private String clusterName;
     private String hostName;
-    private String classIndexName;
-    private String propertyIndexName;
+    private String transportPort;
+    private String termIndexName;
+    private String termIndexMappingType = "term";
     private String lovNqFile;
     private List<String> features;
+
+    private static final Logger log = LoggerFactory.getLogger( ExtractFeaturesElasticsearch.class );
 
     public static void main(String... args) {
         new ExtractFeaturesElasticsearch(args).mainRun();
@@ -36,8 +41,8 @@ public class ExtractFeaturesElasticsearch extends CmdGeneral {
         getUsage().startCategory("Arguments");
         getUsage().addUsage("clusterName", "ElasticSearch cluster name (e.g., elasticsearch)");
         getUsage().addUsage("hostname", "ElasticSearch hostname (e.g., localhost)");
-        getUsage().addUsage("classIndexName", "Target ElasticSearch CLASS index (e.g., classes)");
-        getUsage().addUsage("propertyIndexName", "Target ElasticSearch PROPERTY index (e.g., properties)");
+        getUsage().addUsage("transportPort", "ElasticSearch transport port (e.g., 9300)");
+        getUsage().addUsage("termIndexName", "Target ElasticSearch term index (e.g., terms)");
         getUsage().addUsage("lov.nq", "Filename or URL of the LOV N-Quads dump");
         getUsage().addUsage("features", "List of features to extract, only excepts importance and no relevance features");
 
@@ -45,93 +50,67 @@ public class ExtractFeaturesElasticsearch extends CmdGeneral {
 
     @Override
     protected String getSummary() {
-        return getCommandName() + " clusterName hostname classIndexName propertyIndexName lov.nq lov.n3 features...";
+        return getCommandName() + " clusterName hostname transportPort termIndexName lov.nq features...";
     }
 
     @Override
     protected void processModulesAndArgs() {
-        if (getPositional().size() < 4) {
+        if (getPositional().size() < 5) {
             doHelp();
         }
-        clusterName = getPositionalArg(0);
-        hostName = getPositionalArg(1);
-        classIndexName = getPositionalArg(2);
-        propertyIndexName = getPositionalArg(3);
-        lovNqFile = getPositionalArg(4);
-        features = getArgList().subList(5, getArgList().size());
+        this.clusterName = getPositionalArg(0);
+        this.hostName = getPositionalArg(1);
+        this.transportPort = getPositionalArg(2);
+        this.termIndexName = getPositionalArg(3);
+        this.lovNqFile = getPositionalArg(4);
+        this.features = getArgList().subList(5, getArgList().size());
     }
 
     @Override
     protected void exec() {
+        this.updateScoresInESIndex();
+    }
+
+    public void updateScoresInESIndex() {
 
         AbstractOntologyRepository repository = ExperimentConfiguration.getInstance().getRepository();
-        repository.setConnector(new JenaConnector(lovNqFile));
+        repository.setConnector(new JenaConnector(this.lovNqFile));
 
         AbstractOntologyMetadataRepository metadataRepository = ExperimentConfiguration.getInstance().getRepositoryMetadata();
-        metadataRepository.setConnector(new JenaConnector(lovNqFile));
+        metadataRepository.setConnector(new JenaConnector(this.lovNqFile));
 
         // Initialize feature extractor
-        FeatureExtractorTerms featureExtractorTerms = this.prepareFeatureExtractor(repository, metadataRepository);
+        FeatureExtractorTerms featureExtractorTerms = this.prepareFeatureExtractor(this.features);
 
         // Extract
         FeatureSetScores<TermQuery,Term> featureSetScores = featureExtractorTerms.extractImportance(repository.getAllTerms());
-        featureSetScores.writeCsv();
+//        featureSetScores.writeCsv();
 
-        // Elasticsearch client
-
+        // Elasticsearch index
+        ElasticSearchIndex termIndex = new ElasticSearchIndex(this.clusterName, this.hostName, this.transportPort, this.termIndexName, this.termIndexMappingType);
 
         // Update values
+        termIndex.bulkUpdate(FeatureRequestHelper.createDocUpdatesFromImportanceScores(featureSetScores));
+
     }
 
     @Override
     protected String getCommandName() {
-        return "extract-features-elasticsearch";
+        return "extract-features-lov";
     }
 
-    private FeatureExtractorTerms prepareFeatureExtractor(AbstractOntologyRepository repository, AbstractOntologyMetadataRepository metadataRepository) {
+    private FeatureExtractorTerms prepareFeatureExtractor(List<String> features) {
         FeatureExtractorTerms featureExtractorTerms = new FeatureExtractorTerms();
 
-        TFIDFScorer tfidfScorer = new TFIDFScorer(repository);
-        TermStatsScorer termStatsScorer = new TermStatsScorer(repository);
-        for (String featureName : this.features) {
-            switch (featureName) {
-                case PageRankVoaf.FEATURE_NAME:
-                    featureExtractorTerms.addOntologyFeature(new PageRankVoaf(repository, metadataRepository));
-                    break;
-                case BetweennessMeasureTerm.FEATURE_NAME:
-                    BetweennessScorer betweennessScorer = new BetweennessScorer(repository);
-                    featureExtractorTerms.addTermFeature(new BetweennessMeasureTerm(repository, betweennessScorer));
-                    break;
-                case IDFTerm.FEATURE_NAME:
-                    featureExtractorTerms.addTermFeature(new IDFTerm(repository, tfidfScorer));
-                    break;
-                case TFTerm.FEATURE_NAME:
-                    featureExtractorTerms.addTermFeature(new TFTerm(repository, tfidfScorer));
-                    break;
-                case TFIDFTerm.FEATURE_NAME:
-                    featureExtractorTerms.addTermFeature(new TFIDFTerm(repository, tfidfScorer));
-                    break;
-                case Subclasses.FEATURE_NAME:
-                    featureExtractorTerms.addTermFeature(new Subclasses(repository, termStatsScorer));
-                    break;
-                case Superclasses.FEATURE_NAME:
-                    featureExtractorTerms.addTermFeature(new Superclasses(repository, termStatsScorer));
-                    break;
-                case Relations.FEATURE_NAME:
-                    featureExtractorTerms.addTermFeature(new Relations(repository, termStatsScorer));
-                    break;
-                case Siblings.FEATURE_NAME:
-                    featureExtractorTerms.addTermFeature(new Siblings(repository, termStatsScorer));
-                    break;
-                case Subproperties.FEATURE_NAME:
-                    featureExtractorTerms.addTermFeature(new Subproperties(repository, termStatsScorer));
-                    break;
-                case Superproperties.FEATURE_NAME:
-                    featureExtractorTerms.addTermFeature(new Superproperties(repository, termStatsScorer));
-                    break;
-                default:
-                    System.out.println(featureName + " invalid.");
-                    break;
+        FeatureFactory featureFactory = new FeatureFactory();
+        for (String featureName : features) {
+            AbstractFeature feature = featureFactory.getFeature(featureName);
+            if (feature == null) {
+                log.error(featureName + " invalid - no corresponding feature class with this name exists.");
+            } else if (feature instanceof AbstractTermFeature) {
+                featureExtractorTerms.addTermFeature((AbstractTermFeature)feature);
+            } else if (feature instanceof AbstractOntologyFeature) {
+                featureExtractorTerms.addOntologyFeature((AbstractOntologyFeature)feature);
             }
         }
 

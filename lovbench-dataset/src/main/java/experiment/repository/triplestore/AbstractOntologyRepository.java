@@ -119,7 +119,7 @@ public abstract class AbstractOntologyRepository extends AbstractRepository {
         }
     }
 
-
+    @Override
     public void setConnector(AbstractConnector connector) {
         this.connector = connector;
         // Make sure the LOV graph is NOT in the ontology repository.

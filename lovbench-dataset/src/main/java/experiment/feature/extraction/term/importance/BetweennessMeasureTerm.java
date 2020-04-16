@@ -32,16 +32,16 @@ public class BetweennessMeasureTerm extends AbstractTermImportanceFeature {
 
     @Override
     public Map<Term, Double> computeScores(Set<Term> termSet, Ontology ontology) {
-        Map<Term, Double> scores = new HashMap<>();
+        Map<Term, Double> setScores = new HashMap<>();
         for (Term term : termSet) {
             if (ontology == null) {
                 ontology = new Ontology(term.getOntologyUriOfTerm());
             }
             double score = this.betweennessScorer.betweenness(term,ontology);
-            scores.put(term, score);
+            setScores.put(term, score);
         }
-        this.scores.putAll(scores);
-        return scores;
+        this.scores.putAll(setScores);
+        return setScores;
     }
 
     @Override

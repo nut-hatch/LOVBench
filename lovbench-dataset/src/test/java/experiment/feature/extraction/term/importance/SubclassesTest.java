@@ -33,19 +33,21 @@ public class SubclassesTest {
 
     @Test
     public void computeAllScores() {
-        Subclasses subclasses = new Subclasses(repository, new TermStatsScorer(repository));
-        subclasses.computeAllScores();
+        if (ExperimentConfiguration.getInstance().isMakeExtensiveTests()) {
+            Subclasses subclasses = new Subclasses(repository, new TermStatsScorer(repository));
+            subclasses.computeAllScores();
 
-        for (Ontology ontology : this.repository.getAllOntologies()) {
-            Set<Term> termSet = this.repository.getAllTerms(ontology);
-            if (!termSet.isEmpty()) {
+            for (Ontology ontology : this.repository.getAllOntologies()) {
+                Set<Term> termSet = this.repository.getAllTerms(ontology);
+                if (!termSet.isEmpty()) {
 
-                // all properties should not have a single subclass, obviously
-                Set<Term> allOntProperties = this.repository.getAllTerms(ontology, TermType.PROPERTY);
-                for (Term property : allOntProperties) {
-                    log.debug(property.getTermUri());
-                    log.debug(subclasses.getScore(property) + "");
-                    assertEquals(0, Double.compare(0.0, subclasses.getScore(property)));
+                    // all properties should not have a single subclass, obviously
+                    Set<Term> allOntProperties = this.repository.getAllTerms(ontology, TermType.PROPERTY);
+                    for (Term property : allOntProperties) {
+                        log.debug(property.getTermUri());
+                        log.debug(subclasses.getScore(property) + "");
+                        assertEquals(0, Double.compare(0.0, subclasses.getScore(property)));
+                    }
                 }
             }
         }
