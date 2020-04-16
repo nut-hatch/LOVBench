@@ -1,0 +1,12 @@
+LOV_Match_T
+PageRank_Voaf_O
+Betweenness_T
+TF_T
+IDF_T
+TF_IDF_T
+Subclasses_T
+Superclasses_T
+Relations_T
+Siblings_T
+Subproperties_T
+Superproperties_T

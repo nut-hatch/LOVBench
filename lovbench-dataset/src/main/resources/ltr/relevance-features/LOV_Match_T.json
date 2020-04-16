@@ -1,0 +1,19 @@
+{
+  "name": "LOV_Match_T",
+  "params": [
+    "keywords"
+  ],
+  "template_language": "mustache",
+  "template": {
+    "multi_match": {
+      "query": "{{keywords}}",
+      "fields": [
+        "http://www.*","localName.ngram^12","http://www.w3.org/2000/01/rdf-schema#label*^3",
+        "http://purl.org/dc/terms/title*^3","http://purl.org/dc/elements/1.1/title*^3",
+        "http://www.w3.org/2004/02/skos/core#prefLabel*^3","http://www.w3.org/2000/01/rdf-schema#comment*^1.5",
+        "http://purl.org/dc/terms/description*^1.5","http://purl.org/dc/elements/1.1/description*^1.5",
+        "http://www.w3.org/2004/02/skos/core#altLabel*^1.5","vocabulary.*^1"
+      ]
+    }
+  }
+}
