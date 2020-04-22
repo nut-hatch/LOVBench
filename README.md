@@ -6,27 +6,27 @@ This repository contains the sources and resulting datasets and experiments to b
 
 - We analyse user queries and clicks collected from the term search user interface of the [Linked Open Vocabularies (LOV)](https://lov.linkeddata.es/dataset/lov/) platform, derive insight of real-world user behaviour for ontology search and make the cleaned search logs (i.e., with all PII in queries removed) available in the [Yandex](https://github.com/markovi/PyClick/blob/master/examples/data/YandexRelPredChallenge) search log format,
 - evaluate the *implicit* user feedback based on expert judgments from [CBRBench](https://zenodo.org/record/11121#.Wmim90tG2Q4), learn and evaluate several user click models with [PyClick](https://github.com/markovi/PyClick) to infer *actual* relevance (forming the ground truth for evaluations), 
-- extract 34 ranking features for ontology term search (supported by a [Stardog](https://www.stardog.com/) triple store), follow the same sample selection strategy as used by [LETOR](https://www.microsoft.com/en-us/research/project/letor-learning-rank-information-retrieval/) and build a LTR dataset for ontoloy search for 5-fold cross validation,
+- extract 34 ranking features for ontology term search (supported by in-memory [Jena](https://jena.apache.org/) model or a [Stardog](https://www.stardog.com/) triple store), follow the same sample selection strategy as used by [LETOR](https://www.microsoft.com/en-us/research/project/letor-learning-rank-information-retrieval/), build a LTR dataset for ontoloy search for 5-fold cross validation, and export feature scores to an ElasticSearch LTR feature store,
 - perform LTR experiments (using [RankLib](https://sourceforge.net/p/lemur/wiki/RankLib/)) with two LTR algorithms (RankNet and AdaRank) for three feature sets as proposed in the literature (CBRBench, AKTiveRank, DWRank) as well as newly proposed configurations with feature modifications that improve the ranking performance.
 
-The details of the results and resources are presented in the following paper:
+The details of the results and resources are presented in the following paper ([PDF](https://orbilu.uni.lu/bitstream/10993/42990/1/LOVBench_WWW20_AuthorVersion.pdf)):
 
 ```
 Niklas Kolbe, Pierre-Yves Vandenbussche, Sylvain Kubler, Yves Le Traon. 
 LOVBench: Ontology Ranking Benchmark. 
 The Web Conference, ACM, 2020.
-(to appear, full paper)
+https://doi.org/10.1145/3366423.3380245
 ```
 
 ## Highlights (TL;DR)
 
-- Do you want to work with the (cleaned) LOV search logs? [Get the log file!](results/clicklog-analysis/LOV_SearchLogs_Clean.txt)
+- Would you like to work with the (cleaned) LOV search logs? [Get the log file](results/clicklog-analysis/LOV_SearchLogs_Clean.txt)
 
-- Do you want to evaluate the effectiveness of your own ontology ranking model with LOVBench? [Use our ground truth!](results/lovbench-dataset/LOVBench_GroundTruth.csv)
+- Would you like to evaluate the effectiveness of your own ontology ranking model with LOVBench? [Use our ground truth](results/lovbench-dataset/LOVBench_GroundTruth.csv)
 
-- Do you want to implement new ranking features and/or use LOVBench to extract ranking features for your ontology collection? [Go to the Java library!](lovbench-dataset/)
+- Would you like to implement new ranking features and/or use LOVBench to extract ranking features for your ontology collection? [Go to the Java library](lovbench-dataset/)
 
-- Do you want to experiment with different LOVBench feature configurations or different LTR algorithms/parameters? [Use or extend the LTR scripts!](ltr-experiments/)
+- Would you like to experiment with different LOVBench feature configurations or different LTR algorithms/parameters? [Use or extend the LTR scripts](ltr-experiments/)
 
 
 
@@ -85,8 +85,6 @@ A Java project that extracts the ranking features as defined in the paper.
 The implementation of ranking features can be reviewed at ./code/3-LOVBenchDataset/src/main/java/experiment/feature/extraction
 
 The features are grouped in ontology and term, as well as relevance and importance features respectively.
-
-Advanced: if wished to the run the feature extraction, one requires a stardog implementation with valid license: https://www.stardog.com/
 
 The implementation can be configured through ./code/3-LOVBenchDataset/src/main/java/experiment/repository/file/ExperimentConfiguration.java
 
