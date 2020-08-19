@@ -1,12 +1,12 @@
 package export.elasticsearch.feature;
 
-import com.google.gson.JsonObject;
 import experiment.feature.FeatureFactory;
 import experiment.feature.extraction.AbstractFeature;
 import experiment.feature.extraction.ontology.importance.AbstractOntologyImportanceFeature;
 import experiment.feature.extraction.term.importance.AbstractTermImportanceFeature;
 import experiment.feature.extraction.term.relevance.LOVTermMatch;
 import experiment.model.Term;
+import experiment.model.query.AbstractQuery;
 import experiment.model.query.TermQuery;
 import experiment.repository.file.FeatureSetScores;
 import org.apache.commons.lang3.tuple.Pair;
@@ -19,11 +19,12 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
+/**
+ * Class that provides helper function to build JSON objects for elasticsearch queries.
+ */
 public class FeatureRequestHelper {
 
     private static final String relevanceFeatureFolder = "src/main/resources/ltr/relevance-features/";
@@ -189,15 +190,70 @@ public class FeatureRequestHelper {
     }
 
     public static JSONObject createDocUpdateObject(Map<AbstractFeature, Double> termScores) {
-        JSONObject docUpdate = new JSONObject();
         JSONObject updateObject = new JSONObject();
         for (Map.Entry<AbstractFeature, Double> termFeatureScores : termScores.entrySet()) {
             updateObject.put(termFeatureScores.getKey().getFeatureName(), termFeatureScores.getValue());
         }
-//        docUpdate.put("doc", updateObject);
         return updateObject;
     }
 
+
+    public static JSONObject createFeatureLoggingSLTRQuery(AbstractQuery query, Set<Term> terms, String featureSetName) {
+        JSONObject sltrQuery = new JSONObject();
+        sltrQuery.put("query",
+            new JSONObject()
+                .put("bool",
+                    new JSONObject()
+                        .put("filter",
+                            new JSONArray()
+                                .put(new JSONObject()
+                                    .put("terms",
+                                        new JSONObject()
+                                            .put("_id", terms.stream().map(t -> t.getTermUri().toString()).collect(Collectors.toList()))
+                                    )
+                                )
+                                .put(new JSONObject()
+                                    .put("sltr",
+                                        new JSONObject()
+                                            .put("_name", "Logged_"+featureSetName)
+                                            .put("featureset", featureSetName)
+                                            .put("params",
+                                                new JSONObject()
+                                                    .put("keywords", String.join(" ", query.getSearchWords()))
+                                            )
+                                    )
+                                )
+                        )
+                )
+        );
+        sltrQuery.put("ext",
+            new JSONObject()
+                .put("ltr_log",
+                    new JSONObject()
+                        .put("log_specs",
+                            new JSONObject()
+                                .put("name", "LogEntry_"+featureSetName)
+                                .put("named_query", "Logged_"+featureSetName)
+                                .put("missing_as_zero", true)
+                        )
+                )
+        );
+        return sltrQuery;
+    }
+
+    public static JSONObject createAddModelRequest(String modelName, String modelType, String modelDefinition) {
+        JSONObject addModelRequest = new JSONObject();
+
+        addModelRequest.put("model", new JSONObject()
+            .put("name",modelName)
+            .put("model", new JSONObject()
+                .put("type", "model/"+modelType)
+                .put("definition", modelDefinition)
+            )
+        );
+
+        return addModelRequest;
+    }
 
 
     static String readFile(String path, Charset encoding) throws IOException {

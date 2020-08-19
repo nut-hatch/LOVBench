@@ -9,7 +9,7 @@ import java.util.Objects;
 /**
  * Class that represents a term in the ontology collection.
  */
-public class Term {
+public class Term extends RankingElement {
 
     /**
      * The full URI of the term.

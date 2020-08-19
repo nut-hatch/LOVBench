@@ -1,5 +1,6 @@
 package export.elasticsearch.index;
 
+import export.elasticsearch.cli.config.ElasticsearchConfiguration;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
 import org.json.JSONObject;
@@ -8,8 +9,12 @@ import java.io.IOException;
 
 public class LTRIndex extends ElasticSearchIndex {
 
-    public LTRIndex(String clusterName, String hostName, String port, String indexName, String mappingType) {
-        super(clusterName, hostName, port, indexName, mappingType);
+    public LTRIndex(String clusterName, String hostName, String port, String restPort, String indexName, String mappingType) {
+        super(clusterName, hostName, port, restPort, indexName, mappingType);
+    }
+
+    public LTRIndex(ElasticsearchConfiguration config) {
+        this(config.getClusterName(), config.getHostName(), config.getTransportPort(), config.getRestPort(), config.getLtrIndexName(), config.getLtrIndexMappingType());
     }
 
     /**
@@ -22,7 +27,7 @@ public class LTRIndex extends ElasticSearchIndex {
 //        System.out.println(client.admin().indices().prepareExists(indexName).execute().actionGet().isExists());
 //        return client.admin().indices().prepareExists(indexName).execute().actionGet().isExists();
         try {
-            JSONObject exists = new JSONObject(Request.Get(this.getIndexUrl())
+            JSONObject exists = new JSONObject(Request.Get(this.getRestIndexUrl())
                     .setHeader("Content-Type", "application/json")
                     .connectTimeout(1000)
                     .socketTimeout(1000)
@@ -41,7 +46,7 @@ public class LTRIndex extends ElasticSearchIndex {
      */
     public boolean initialize() {
         try {
-            JSONObject exists = new JSONObject(Request.Put(this.getIndexUrl())
+            JSONObject exists = new JSONObject(Request.Put(this.getRestIndexUrl())
                     .setHeader("Content-Type", "application/json")
                     .connectTimeout(1000)
                     .socketTimeout(1000)
@@ -120,13 +125,17 @@ public class LTRIndex extends ElasticSearchIndex {
         }
     }
 
-    /**
-     * Returns the REST url to query the LTR index.
-     *
-     * @return
-     */
-    private String getIndexUrl(){
-        return "http://" + hostName + ":"+this.port+"/"+indexName;
+    public boolean addModel(String featureSetName, JSONObject modelSpecification) {
+        try {
+            JSONObject post = new JSONObject(Request.Post(this.getFeatureSetUrl(featureSetName))
+                    .bodyString(modelSpecification.toString(), ContentType.APPLICATION_JSON)
+                    .connectTimeout(1000)
+                    .socketTimeout(1000)
+                    .execute().returnContent().asString());
+            return !post.getString("result").isEmpty();
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     /**

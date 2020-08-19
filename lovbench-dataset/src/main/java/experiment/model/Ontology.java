@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Class that represents an ontology in the collection.
  */
-public class Ontology {
+public class Ontology extends RankingElement {
 
     /**
      * The URI of the ontology.

@@ -147,6 +147,10 @@ public class FeatureSetScores<Q,R> {
         }
     }
 
+    public void writeRankLibFormat(GroundTruthTermRanking groundTruthTermRanking, String filename, List<AbstractFeature> featureOrder) {
+
+    }
+
     /**
      * Creates the filename for the feature scores.
      *

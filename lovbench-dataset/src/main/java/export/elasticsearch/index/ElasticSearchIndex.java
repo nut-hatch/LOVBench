@@ -1,9 +1,11 @@
 package export.elasticsearch.index;
 
+import export.elasticsearch.cli.config.ElasticsearchConfiguration;
+import org.apache.http.client.fluent.Request;
+import org.apache.http.entity.ContentType;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.*;
@@ -11,11 +13,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Iterator;
@@ -26,17 +30,23 @@ public class ElasticSearchIndex implements Closeable {
     protected final String clusterName;
     protected final String hostName;
     protected final String port;
+    protected final String restPort;
     protected final String indexName;
     protected final String mappingType;
     protected Client client = null;
-    private static final Logger log = LoggerFactory.getLogger( ElasticSearchIndex.class );
+    private static final Logger log = LoggerFactory.getLogger(ElasticSearchIndex.class);
 
-    public ElasticSearchIndex(String clusterName, String hostName, String port, String indexName, String mappingType) {
+    public ElasticSearchIndex(String clusterName, String hostName, String port, String restPort, String indexName, String mappingType) {
         this.clusterName = clusterName;
         this.hostName = hostName;
         this.indexName = indexName;
         this.mappingType = mappingType;
         this.port = port;
+        this.restPort = restPort;
+    }
+
+    public ElasticSearchIndex(ElasticsearchConfiguration config) {
+        this(config.getClusterName(), config.getHostName(), config.getTransportPort(), config.getRestPort(), config.getTermIndexName(), config.getTermIndexMappingType());
     }
 
     public void connect() {
@@ -58,6 +68,7 @@ public class ElasticSearchIndex implements Closeable {
 
     /**
      * Checks whether the index exists.
+     *
      * @return
      */
     public boolean exists() {
@@ -67,6 +78,7 @@ public class ElasticSearchIndex implements Closeable {
 
     /**
      * Looks up existing documents by ID.
+     *
      * @param id
      * @return
      */
@@ -78,15 +90,34 @@ public class ElasticSearchIndex implements Closeable {
         if (getResponse.isExists()) {
             long version = getResponse.getVersion();
             String sourceAsString = getResponse.getSourceAsString();
-            log.debug(version+"");
+            log.debug(version + "");
             log.debug(sourceAsString);
             return new JSONObject(sourceAsString);
         } else {
-            log.error("Get request for " + this.indexName + "/"+ this.mappingType+"/"+ id + " failed! Maybe document id does not exist.");
+            log.error("Get request for " + this.indexName + "/" + this.mappingType + "/" + id + " failed! Maybe document id does not exist.");
         }
 
         return null;
-     }
+    }
+
+    public JSONArray search(JSONObject query) {
+        connect();
+        try {
+            System.out.println(this.getRestIndexUrl() + "/_search");
+            JSONObject featureLogValues = new JSONObject(Request.Post(this.getRestIndexUrl() + "/_search")
+                    .setHeader("Content-Type", "application/json")
+                    .bodyString(query.toString(), ContentType.APPLICATION_JSON)
+                    .connectTimeout(5000)
+                    .socketTimeout(5000)
+                    .execute().returnContent().asString());
+            return featureLogValues.getJSONObject("hits").getJSONArray("hits");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+
+    }
+
 
     /**
      * Updates document fields by id of existing documents.
@@ -95,43 +126,43 @@ public class ElasticSearchIndex implements Closeable {
      * @param docUpdate
      * @return
      */
-     public boolean update(String id, String docUpdate) {
+    public boolean update(String id, String docUpdate) {
         connect();
 
         UpdateResponse updateResponse = client.prepareUpdate(this.indexName, this.mappingType, id).setDoc(docUpdate, XContentType.JSON).get();
         if (updateResponse.getGetResult().isExists()) {
             return true;
         } else {
-            log.error("Update request for " + this.indexName + "/"+ this.mappingType+"/"+ id + " failed! Maybe document id does not exist.");
+            log.error("Update request for " + this.indexName + "/" + this.mappingType + "/" + id + " failed! Maybe document id does not exist.");
         }
         return false;
-     }
+    }
 
-     public boolean bulkUpdate(Map<String,JSONObject> docUpdates) {
-         connect();
+    public boolean bulkUpdate(Map<String, JSONObject> docUpdates) {
+        connect();
 
-         boolean allSuccessful = true;
+        boolean allSuccessful = true;
 
-         BulkRequestBuilder bulkRequest = client.prepareBulk();
+        BulkRequestBuilder bulkRequest = client.prepareBulk();
 
-         for (Map.Entry<String,JSONObject> docUpdate : docUpdates.entrySet()) {
-             bulkRequest.add(client.prepareUpdate(this.indexName, this.mappingType, docUpdate.getKey()).setDoc(docUpdate.getValue().toString(), XContentType.JSON));
-         }
+        for (Map.Entry<String, JSONObject> docUpdate : docUpdates.entrySet()) {
+            bulkRequest.add(client.prepareUpdate(this.indexName, this.mappingType, docUpdate.getKey()).setDoc(docUpdate.getValue().toString(), XContentType.JSON));
+        }
 
-         BulkResponse bulkResponse = bulkRequest.get();
-         if (bulkResponse.hasFailures()) {
-             Iterator<BulkItemResponse> it = bulkResponse.iterator();
-             while (it.hasNext()) {
-                 BulkItemResponse r = it.next();
-                 if (r.isFailed()) {
-                     log.warn("Request failed! " + r.getFailureMessage());
-                 }
-             }
-             allSuccessful = false;
-             // process failures by iterating through each bulk response item
-         }
-         return allSuccessful;
-     }
+        BulkResponse bulkResponse = bulkRequest.get();
+        if (bulkResponse.hasFailures()) {
+            Iterator<BulkItemResponse> it = bulkResponse.iterator();
+            while (it.hasNext()) {
+                BulkItemResponse r = it.next();
+                if (r.isFailed()) {
+                    log.warn("Request failed! " + r.getFailureMessage());
+                }
+            }
+            allSuccessful = false;
+            // process failures by iterating through each bulk response item
+        }
+        return allSuccessful;
+    }
 
 //    public boolean create() {
 //        return this.create(true);
@@ -168,6 +199,17 @@ public class ElasticSearchIndex implements Closeable {
 
         return true;
     }
+
+
+    /**
+     * Returns the REST url to query the LTR index.
+     *
+     * @return
+     */
+    public String getRestIndexUrl(){
+        return "http://" + hostName + ":"+this.restPort+"/"+indexName;
+    }
+
 
     public String getClusterName() {
         return clusterName;

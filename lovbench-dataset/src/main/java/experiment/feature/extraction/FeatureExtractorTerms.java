@@ -10,7 +10,6 @@ import experiment.feature.extraction.term.relevance.AbstractTermRelevanceFeature
 import experiment.model.*;
 import experiment.model.query.TermQuery;
 import experiment.model.query.enums.ExtractionType;
-import experiment.repository.file.FeatureScores;
 import experiment.repository.file.FeatureSetScores;
 import experiment.repository.file.GroundTruthTermRanking;
 import org.apache.commons.lang3.tuple.Pair;
@@ -40,7 +39,6 @@ public class FeatureExtractorTerms extends AbstractFeatureExtractor {
      */
     public void extract(GroundTruthTermRanking groundTruthTermRanking) {
 
-        Map<AbstractFeature, FeatureScores<TermQuery,Term>> allScores = new HashMap<>();
         FeatureSetScores<TermQuery,Term> featureSetScores = new FeatureSetScores<>(ExtractionType.TERM);
 
         if (this.termFeatures.size() > 0) {
