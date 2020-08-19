@@ -9,9 +9,13 @@ import experiment.feature.extraction.ontology.importance.PageRankVoaf;
 import experiment.feature.extraction.ontology.relevance.BetweennessMeasure;
 import experiment.feature.extraction.term.importance.BetweennessMeasureTerm;
 import experiment.model.Ontology;
+import experiment.model.Relevance;
 import experiment.model.Term;
 import experiment.model.query.TermQuery;
 import experiment.repository.file.FeatureSetScores;
+import experiment.repository.file.GroundTruthTermRanking;
+import export.elasticsearch.index.ElasticSearchIndex;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.json.JSONObject;
 import org.junit.Before;
@@ -22,12 +26,14 @@ import org.slf4j.LoggerFactory;
 import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.*;
 
 public class FeatureRequestHelperTest {
 
     String featureSetFile = getClass().getClassLoader().getResource("LOVBenchLight.txt").getFile().toString();
+    String groundTruthFile = getClass().getClassLoader().getResource("LOVBench_GroundTruth.csv").getFile().toString();
 
     private static final Logger log = LoggerFactory.getLogger( FeatureRequestHelperTest.class );
 
@@ -76,6 +82,18 @@ public class FeatureRequestHelperTest {
         for (Map.Entry<String, JSONObject> docUpdate : docUpdates.entrySet()) {
             log.debug("id: " + docUpdate.getKey());
             log.debug("update: " + docUpdate.getValue());
+            break;
+        }
+    }
+
+    @Test
+    public void createFeatureLoggingSLTRQuery() {
+        GroundTruthTermRanking groundTruthTermRanking = GroundTruthTermRanking.parse(this.groundTruthFile);
+        for(Map.Entry<TermQuery, Map<Term, Relevance>> groundTruthRowMapEntry : groundTruthTermRanking.getGroundTruthTable().rowMap().entrySet()) {
+            TermQuery query = groundTruthRowMapEntry.getKey();
+            Set<Term> terms = groundTruthRowMapEntry.getValue().keySet();
+            JSONObject sltrQuery = FeatureRequestHelper.createFeatureLoggingSLTRQuery(query, terms, FilenameUtils.getBaseName(this.featureSetFile));
+            System.out.println(sltrQuery.toString());
             break;
         }
     }

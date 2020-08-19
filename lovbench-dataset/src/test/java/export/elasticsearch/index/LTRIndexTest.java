@@ -19,7 +19,7 @@ public class LTRIndexTest {
 
     String featureSetName = "LOVBenchLight";
     String featureSetFile = getClass().getClassLoader().getResource("LOVBenchLight.txt").getFile().toString();
-    LTRIndex ltrIndex = new LTRIndex("elasticsearch", "localhost", "9200", "_ltr", "_featureset");
+    LTRIndex ltrIndex = new LTRIndex("elasticsearch", "localhost", "9300","9200", "_ltr", "_featureset");
 
     private static final Logger log = LoggerFactory.getLogger( LTRIndexTest.class );
 
